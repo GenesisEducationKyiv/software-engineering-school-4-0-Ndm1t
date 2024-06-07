@@ -19,7 +19,7 @@ func main() {
 	s := server.NewServer()
 
 	c := cron.New()
-	_, err := c.AddFunc("*/5 * * * *", crons.SendRateEmails)
+	_, err := c.AddFunc("0 9 * * *", crons.SendRateEmails)
 	if err != nil {
 		log.Fatalf("Error scheduling crons job: %v", err)
 	}
