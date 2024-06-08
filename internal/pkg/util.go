@@ -20,13 +20,11 @@ type GetRateResponse struct {
 func FetchRate() (*float64, error) {
 	res, err := http.Get(os.Getenv("API_URL"))
 	if err != nil {
-
 		return nil, err
 	}
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-
 		return nil, err
 	}
 

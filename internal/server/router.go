@@ -2,6 +2,7 @@ package server
 
 import (
 	"github.com/gin-gonic/gin"
+	"log"
 	"os"
 )
 
@@ -27,5 +28,7 @@ func (s *Server) routes() {
 }
 
 func (s *Server) Run() {
-	s.router.Run(os.Getenv("PORT"))
+	if err := s.router.Run(os.Getenv("PORT")); err != nil {
+		log.Fatalf("Failed to run server %v", err.Error())
+	}
 }

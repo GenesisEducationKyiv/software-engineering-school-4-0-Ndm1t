@@ -39,7 +39,7 @@ func (s *Server) Subscribe(c *gin.Context) {
 	if result.RowsAffected == 0 && subscription.Status == models.Unsubscribed {
 		subscription.Status = models.Subscribed
 		subscription.DeletedAt = nil
-		result = database.DB.Save(&subscription)
+		database.DB.Save(&subscription)
 	}
 
 	c.Status(http.StatusOK)
