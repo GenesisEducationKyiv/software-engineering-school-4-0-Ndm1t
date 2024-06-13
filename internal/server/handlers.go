@@ -27,7 +27,12 @@ func (s *Server) Subscribe(c *gin.Context) {
 	subscription := models.Email{Email: subscriptionData.Email, Status: models.Subscribed}
 	result := database.DB.FirstOrCreate(&subscription, models.Email{Email: subscriptionData.Email})
 
-	if result.Error != nil || (result.RowsAffected == 0 && subscription.Status == models.Subscribed) {
+	if result.Error != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	if result.RowsAffected == 0 && subscription.Status == models.Subscribed {
 		c.Status(http.StatusBadRequest)
 		return
 	}
