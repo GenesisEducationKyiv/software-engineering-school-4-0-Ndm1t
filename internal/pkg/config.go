@@ -2,11 +2,8 @@ package pkg
 
 import (
 	"github.com/joho/godotenv"
-	"gorm.io/gorm"
 	"log"
 )
-
-var DB *gorm.DB
 
 func LoadConfig() {
 	err := godotenv.Load()

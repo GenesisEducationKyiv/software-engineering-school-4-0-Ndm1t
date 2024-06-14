@@ -14,10 +14,10 @@ func main() {
 	pkg.LoadConfig()
 	database.ConnectDatabase()
 
-	database.DB.AutoMigrate(&models.Email{})
-
+	if err := database.DB.AutoMigrate(&models.Email{}); err != nil {
+		log.Fatalf("Coulnd't migrate database: %v", err.Error())
+	}
 	s := server.NewServer()
-
 	c := cron.New()
 	_, err := c.AddFunc("0 9 * * *", crons.SendRateEmails)
 	if err != nil {
