@@ -27,10 +27,10 @@ func (c *RateController) Get(ctx *gin.Context) {
 	if err != nil {
 		var httpErr *apperrors.HttpError
 		if errors.As(err, &httpErr) {
-			ctx.JSON(httpErr.StatusCode, httpErr.Message)
+			ctx.JSON(httpErr.StatusCode, httpErr.JSONResponse)
 			return
 		}
-		ctx.JSON(apperrors.ErrInternalServer.StatusCode, apperrors.ErrInternalServer.Message)
+		ctx.JSON(apperrors.ErrInternalServer.StatusCode, apperrors.ErrInternalServer.JSONResponse)
 		return
 	}
 	ctx.JSON(http.StatusOK, rate)

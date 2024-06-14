@@ -21,21 +21,18 @@ func NewUSDRateAPIProvider() *USDRateAPIProvider {
 func (p *USDRateAPIProvider) FetchRate() (*float64, error) {
 	res, err := http.Get(os.Getenv("API_URL"))
 	if err != nil {
-		return nil, apperrors.NewHttpError("Failed to fetch rate from API",
-			http.StatusInternalServerError)
+		return nil, apperrors.ErrRateFetch
 	}
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, apperrors.NewHttpError("Failed to read response from rate API",
-			http.StatusInternalServerError)
+		return nil, apperrors.ErrRateFetch
 	}
 
 	var rateList GetRateResponse
 	err = json.Unmarshal(body, &rateList)
 	if err != nil {
-		return nil, apperrors.NewHttpError("Failed to read response from rate API",
-			http.StatusInternalServerError)
+		return nil, apperrors.ErrRateFetch
 	}
 
 	rate := rateList.ConversionRates["UAH"]

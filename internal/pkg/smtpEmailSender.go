@@ -45,7 +45,7 @@ func (s *SmtpEmailSender) SendInforming(subscriptions []models.Email, rate float
 			msg := []byte(subject + fromHeader + toHeader + "\n" + body)
 			err := smtp.SendMail(s.host+":"+s.port, s.auth, s.from, []string{email}, msg)
 			if err != nil {
-				log.Fatalf(err.Error())
+				log.Println(err.Error())
 			}
 		}(v.Email)
 	}

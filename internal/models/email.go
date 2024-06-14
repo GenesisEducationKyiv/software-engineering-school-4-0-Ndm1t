@@ -12,8 +12,8 @@ const (
 )
 
 type Email struct {
-	Email     string       `gorm:"primaryKey"`
-	Status    Subscription `gorm:"default:subscribed"`
-	CreatedAt time.Time    `gorm:"autoCreateTime"`
-	DeletedAt *time.Time   `gorm:"index"`
+	Email     string       `gorm:"primaryKey" json:"email"`
+	Status    Subscription `gorm:"default:subscribed" json:"status"`
+	CreatedAt time.Time    `gorm:"autoCreateTime" json:"createdAt"`
+	DeletedAt *time.Time   `gorm:"index" json:"deletedAt"`
 }

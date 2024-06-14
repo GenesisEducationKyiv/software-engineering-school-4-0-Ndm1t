@@ -4,7 +4,6 @@ import (
 	"gses4_project/internal/apperrors"
 	"gses4_project/internal/database"
 	"gses4_project/internal/models"
-	"net/http"
 )
 
 type ISubscriptionDao interface {
@@ -24,21 +23,21 @@ func NewSubscriptionService() *SubscriptionService {
 	}
 }
 
-func (s *SubscriptionService) Subscribe(email string) error {
+func (s *SubscriptionService) Subscribe(email string) (*models.Email, error) {
 	subscription, err := s.SubscriptionDao.Find(email)
 
 	if subscription != nil && subscription.Status == models.Subscribed {
-		return apperrors.NewHttpError("Already subscribed", http.StatusBadRequest)
+		return nil, apperrors.ErrSubscriptionAlreadyExists
 	}
 
 	if subscription.Status == models.Unsubscribed {
 		subscription.Status = models.Subscribed
-		_, err = s.SubscriptionDao.Update(*subscription)
+		subscription, err = s.SubscriptionDao.Update(*subscription)
 	}
 
 	if (models.Email{}) == *subscription {
-		_, err = s.SubscriptionDao.Create(email)
+		subscription, err = s.SubscriptionDao.Create(email)
 	}
 
-	return err
+	return subscription, err
 }

@@ -10,7 +10,7 @@ import (
 )
 
 type ISubscriptionService interface {
-	Subscribe(email string) error
+	Subscribe(email string) (*models.Email, error)
 }
 
 type SubscriptionController struct {
@@ -32,17 +32,17 @@ func (c *SubscriptionController) Subscribe(ctx *gin.Context) {
 		return
 	}
 
-	err := c.SubscriptionService.Subscribe(subscriptionData.Email)
+	subscription, err := c.SubscriptionService.Subscribe(subscriptionData.Email)
 
 	if err != nil {
 		var httpErr *apperrors.HttpError
 		if errors.As(err, &httpErr) {
-			ctx.JSON(httpErr.StatusCode, httpErr.Message)
+			ctx.JSON(httpErr.StatusCode, httpErr.JSONResponse)
 			return
 		}
 
-		ctx.JSON(apperrors.ErrInternalServer.StatusCode, apperrors.ErrInternalServer.Message)
+		ctx.JSON(apperrors.ErrInternalServer.StatusCode, apperrors.ErrInternalServer.JSONResponse)
 		return
 	}
-	ctx.Status(http.StatusOK)
+	ctx.JSON(http.StatusOK, &subscription)
 }
