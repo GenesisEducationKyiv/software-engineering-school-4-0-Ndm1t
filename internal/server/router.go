@@ -2,6 +2,7 @@ package server
 
 import (
 	"github.com/gin-gonic/gin"
+	"gses4_project/internal/container"
 	"gses4_project/internal/crons"
 	"gses4_project/internal/server/controllers"
 	"log"
@@ -13,14 +14,16 @@ type Server struct {
 	router                 *gin.Engine
 	subscriptionController *controllers.SubscriptionController
 	Scheduler              *crons.CronScheduler
+	container              container.IContainer
 }
 
-func NewServer() *Server {
+func NewServer(container container.IContainer) *Server {
 	server := &Server{
 		router:                 gin.Default(),
-		rateController:         controllers.NewRateController(),
-		subscriptionController: controllers.NewSubscriptionController(),
-		Scheduler:              crons.NewCronScheduler(),
+		rateController:         controllers.NewRateController(container),
+		subscriptionController: controllers.NewSubscriptionController(container),
+		Scheduler:              crons.NewCronScheduler(container),
+		container:              container,
 	}
 
 	server.Scheduler.Setup()

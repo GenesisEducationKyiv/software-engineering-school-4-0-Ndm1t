@@ -4,21 +4,20 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"gses4_project/internal/apperrors"
+	"gses4_project/internal/container"
 	"gses4_project/internal/services"
 	"net/http"
 )
 
-type IRateService interface {
-	Get() (*float64, error)
-}
-
 type RateController struct {
-	RateService IRateService
+	RateService services.IRateService
+	container   container.IContainer
 }
 
-func NewRateController() *RateController {
+func NewRateController(container container.IContainer) *RateController {
 	return &RateController{
-		RateService: services.NewRateService(),
+		RateService: services.NewRateService(container),
+		container:   container,
 	}
 }
 
