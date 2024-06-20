@@ -10,19 +10,20 @@ import (
 )
 
 type Server struct {
-	rateController         *controllers.RateController
+	rateController         controllers.IRateController
 	router                 *gin.Engine
-	subscriptionController *controllers.SubscriptionController
-	Scheduler              *crons.CronScheduler
+	subscriptionController controllers.ISubscriptionController
+	Scheduler              crons.ICronScheduler
 	container              container.IContainer
 }
 
-func NewServer(container container.IContainer) *Server {
+func NewServer(container container.IContainer, rateController controllers.IRateController,
+	subscriptionController controllers.ISubscriptionController, cronScheduler crons.ICronScheduler) *Server {
 	server := &Server{
 		router:                 gin.Default(),
-		rateController:         controllers.NewRateController(container),
-		subscriptionController: controllers.NewSubscriptionController(container),
-		Scheduler:              crons.NewCronScheduler(container),
+		rateController:         rateController,
+		subscriptionController: subscriptionController,
+		Scheduler:              cronScheduler,
 		container:              container,
 	}
 

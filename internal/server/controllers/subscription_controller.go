@@ -15,9 +15,14 @@ type SubscriptionController struct {
 	container           container.IContainer
 }
 
-func NewSubscriptionController(container container.IContainer) *SubscriptionController {
+type ISubscriptionController interface {
+	Subscribe(ctx *gin.Context)
+}
+
+func NewSubscriptionController(container container.IContainer,
+	subscriptionService services.ISubscriptionService) *SubscriptionController {
 	return &SubscriptionController{
-		SubscriptionService: services.NewSubscriptionService(container),
+		SubscriptionService: subscriptionService,
 		container:           container,
 	}
 }
