@@ -7,6 +7,10 @@ import (
 	"log"
 )
 
+const (
+	EveryDayAt9AM = "0 9 * * *"
+)
+
 type CronScheduler struct {
 	Cron      *cron.Cron
 	container container.IContainer
@@ -21,7 +25,7 @@ func NewCronScheduler(container container.IContainer) *CronScheduler {
 
 func (s *CronScheduler) Setup() {
 	informingService := services.NewInformingService(s.container)
-	_, err := s.Cron.AddFunc("0 9 * * *", informingService.SendEmails)
+	_, err := s.Cron.AddFunc(EveryDayAt9AM, informingService.SendEmails)
 	if err != nil {
 		log.Printf("Failed to register job: %v", err.Error())
 	}

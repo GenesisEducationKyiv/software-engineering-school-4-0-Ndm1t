@@ -29,7 +29,7 @@ var (
 		map[string]interface{}{
 			"error": "subscription already exists",
 		})
-	ErrDatabase = NewHttpError("Databse error",
+	ErrDatabase = NewHttpError("Database error",
 		http.StatusInternalServerError,
 		map[string]interface{}{
 			"error": "database raised an error",

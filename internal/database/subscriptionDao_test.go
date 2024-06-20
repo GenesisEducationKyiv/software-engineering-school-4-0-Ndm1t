@@ -60,6 +60,13 @@ func TestSubscriptionDao(t *testing.T) {
 		updatedSubscription, err := dao.Update(*foundSubscription)
 		require.NoError(t, err)
 		assert.Equal(t, models.Unsubscribed, updatedSubscription.Status)
+		foundSubscription, err = dao.Find(email)
+		require.NoError(t, err)
+		assert.Equal(t, updatedSubscription.Status, foundSubscription.Status)
+		assert.Equal(t, updatedSubscription.Email, foundSubscription.Email)
+		assert.Equal(t, updatedSubscription.CreatedAt, foundSubscription.CreatedAt)
+		assert.Equal(t, updatedSubscription.DeletedAt, foundSubscription.DeletedAt)
+
 	})
 
 	_ = db.Migrator().DropTable(&models.Email{})
