@@ -1,18 +1,27 @@
 package services
 
-import "gses4_project/internal/pkg"
+import (
+	"gses4_project/internal/container"
+	"gses4_project/internal/pkg"
+)
 
 type IRateAPIProvider interface {
 	FetchRate() (*float64, error)
 }
 
-type RateService struct {
-	APIProvider IRateAPIProvider
+type IRateService interface {
+	Get() (*float64, error)
 }
 
-func NewRateService() *RateService {
+type RateService struct {
+	APIProvider IRateAPIProvider
+	container   container.IContainer
+}
+
+func NewRateService(container container.IContainer) *RateService {
 	return &RateService{
 		APIProvider: pkg.NewUSDRateAPIProvider(),
+		container:   container,
 	}
 }
 

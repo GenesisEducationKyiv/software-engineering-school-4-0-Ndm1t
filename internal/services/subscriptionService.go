@@ -2,6 +2,7 @@ package services
 
 import (
 	"gses4_project/internal/apperrors"
+	"gses4_project/internal/container"
 	"gses4_project/internal/database"
 	"gses4_project/internal/models"
 )
@@ -13,13 +14,19 @@ type ISubscriptionDao interface {
 	Update(subscription models.Email) (*models.Email, error)
 }
 
-type SubscriptionService struct {
-	SubscriptionDao ISubscriptionDao
+type ISubscriptionService interface {
+	Subscribe(email string) (*models.Email, error)
 }
 
-func NewSubscriptionService() *SubscriptionService {
+type SubscriptionService struct {
+	SubscriptionDao ISubscriptionDao
+	container       container.IContainer
+}
+
+func NewSubscriptionService(container container.IContainer) *SubscriptionService {
 	return &SubscriptionService{
-		SubscriptionDao: database.NewSubcscriptionDao(),
+		SubscriptionDao: database.NewSubcscriptionDao(container.GetDatabase()),
+		container:       container,
 	}
 }
 

@@ -1,6 +1,8 @@
 package services
 
 import (
+	"gses4_project/internal/container"
+	"gses4_project/internal/database"
 	"gses4_project/internal/models"
 	"gses4_project/internal/pkg"
 	"log"
@@ -11,16 +13,18 @@ type IEmailSender interface {
 }
 
 type InformingService struct {
-	EmailSender         IEmailSender
-	SubscriptionService *SubscriptionService
-	RateService         *RateService
+	EmailSender     IEmailSender
+	SubscriptionDao ISubscriptionDao
+	RateService     IRateService
+	container       container.IContainer
 }
 
-func NewInformingService() *InformingService {
+func NewInformingService(container container.IContainer) *InformingService {
 	return &InformingService{
-		EmailSender:         pkg.NewSmtpEmailSender(),
-		SubscriptionService: NewSubscriptionService(),
-		RateService:         NewRateService(),
+		EmailSender:     pkg.NewSmtpEmailSender(),
+		SubscriptionDao: database.NewSubcscriptionDao(container.GetDatabase()),
+		RateService:     NewRateService(container),
+		container:       container,
 	}
 }
 
@@ -31,7 +35,7 @@ func (s *InformingService) SendEmails() {
 		return
 	}
 
-	subscriptions, err := s.SubscriptionService.SubscriptionDao.ListSubscribed()
+	subscriptions, err := s.SubscriptionDao.ListSubscribed()
 	if err != nil {
 		log.Printf("Failed to fetch rate: %v", err.Error())
 		return

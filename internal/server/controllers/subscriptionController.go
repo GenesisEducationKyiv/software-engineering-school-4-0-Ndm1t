@@ -4,22 +4,21 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"gses4_project/internal/apperrors"
+	"gses4_project/internal/container"
 	"gses4_project/internal/models"
 	"gses4_project/internal/services"
 	"net/http"
 )
 
-type ISubscriptionService interface {
-	Subscribe(email string) (*models.Email, error)
-}
-
 type SubscriptionController struct {
-	SubscriptionService ISubscriptionService
+	SubscriptionService services.ISubscriptionService
+	container           container.IContainer
 }
 
-func NewSubscriptionController() *SubscriptionController {
+func NewSubscriptionController(container container.IContainer) *SubscriptionController {
 	return &SubscriptionController{
-		SubscriptionService: services.NewSubscriptionService(),
+		SubscriptionService: services.NewSubscriptionService(container),
+		container:           container,
 	}
 }
 
