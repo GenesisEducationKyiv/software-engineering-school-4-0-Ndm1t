@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  usd-mailer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: usd-mailer
+    ports:
+      - 80:80
+    depends_on:
+      - postgres
+    env_file:
+      - .env
+
+  postgres:
+    image: postgres:13
+    container_name: postgres
+    restart: always
+    ports:
+      - 5432:5432
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+
