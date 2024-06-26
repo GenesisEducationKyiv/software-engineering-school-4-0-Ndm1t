@@ -33,7 +33,7 @@ func setupTestServer() *Server {
 
 	db := setupSQLiteDB()
 
-	pkg.LoadConfig("../../.env")
+	_ = pkg.LoadConfig("../../.env")
 
 	cont := container.NewContainer(db)
 

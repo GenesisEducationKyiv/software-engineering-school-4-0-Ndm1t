@@ -15,7 +15,10 @@ import (
 )
 
 func main() {
-	pkg.LoadConfig()
+	err := pkg.LoadConfig()
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
 	db := database.ConnectDatabase()
 
 	if err := db.AutoMigrate(&models.Email{}); err != nil {

@@ -1,13 +1,14 @@
 package pkg
 
 import (
+	"fmt"
 	"github.com/joho/godotenv"
-	"log"
 )
 
-func LoadConfig(paths ...string) {
+func LoadConfig(paths ...string) error {
 	err := godotenv.Load(paths...)
 	if err != nil {
-		log.Fatalf("Error loading .env file : %v", err)
+		return fmt.Errorf("error loading .env file : %v", err)
 	}
+	return err
 }
