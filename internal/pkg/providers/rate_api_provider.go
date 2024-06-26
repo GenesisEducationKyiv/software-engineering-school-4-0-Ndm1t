@@ -1,4 +1,4 @@
-package pkg
+package providers
 
 import (
 	"encoding/json"
@@ -12,14 +12,15 @@ type GetRateResponse struct {
 	ConversionRates map[string]float64 `json:"conversion_rates"`
 }
 
-type USDRateAPIProvider struct{}
+type ExchangeAPIProvider struct{}
 
-func NewUSDRateAPIProvider() *USDRateAPIProvider {
-	return &USDRateAPIProvider{}
+func NewExchangeAPIProvider() *ExchangeAPIProvider {
+	return &ExchangeAPIProvider{}
 }
 
-func (p *USDRateAPIProvider) FetchRate() (*float64, error) {
-	res, err := http.Get(os.Getenv("API_URL"))
+func (p *ExchangeAPIProvider) FetchRate() (*float64, error) {
+	url := os.Getenv("API_URL")
+	res, err := http.Get(url)
 	if err != nil {
 		return nil, apperrors.ErrRateFetch
 	}

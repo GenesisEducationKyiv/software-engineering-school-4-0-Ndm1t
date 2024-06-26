@@ -1,6 +1,8 @@
 package container
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+)
 
 type IContainer interface {
 	GetDatabase() *gorm.DB

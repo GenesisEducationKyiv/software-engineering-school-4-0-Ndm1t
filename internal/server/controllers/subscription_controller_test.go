@@ -33,10 +33,10 @@ func setupSubscriptionTestServer(subscriptionService services.ISubscriptionServi
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 
-	container := &container.Container{}
+	appContainer := &container.Container{}
 	controller := &SubscriptionController{
 		SubscriptionService: subscriptionService,
-		container:           container,
+		container:           appContainer,
 	}
 	router.POST("/subscribe", controller.Subscribe)
 	return router

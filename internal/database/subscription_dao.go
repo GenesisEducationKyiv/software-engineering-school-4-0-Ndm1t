@@ -6,17 +6,17 @@ import (
 	"gses4_project/internal/models"
 )
 
-type SubscriptionDao struct {
+type SubscriptionRepository struct {
 	DB *gorm.DB
 }
 
-func NewSubcscriptionDao(db *gorm.DB) *SubscriptionDao {
-	return &SubscriptionDao{
+func NewSubscriptionRepository(db *gorm.DB) *SubscriptionRepository {
+	return &SubscriptionRepository{
 		DB: db,
 	}
 }
 
-func (d *SubscriptionDao) Find(email string) (*models.Email, error) {
+func (d *SubscriptionRepository) Find(email string) (*models.Email, error) {
 	var subscription models.Email
 	result := d.DB.Where("email = ?", email).Find(&subscription)
 	if result.Error != nil {
@@ -27,7 +27,7 @@ func (d *SubscriptionDao) Find(email string) (*models.Email, error) {
 
 }
 
-func (d *SubscriptionDao) Create(email string) (*models.Email, error) {
+func (d *SubscriptionRepository) Create(email string) (*models.Email, error) {
 	subscription := models.Email{Email: email, Status: models.Subscribed}
 	result := d.DB.Create(&subscription)
 
@@ -38,7 +38,7 @@ func (d *SubscriptionDao) Create(email string) (*models.Email, error) {
 	return &subscription, nil
 }
 
-func (d *SubscriptionDao) ListSubscribed() ([]models.Email, error) {
+func (d *SubscriptionRepository) ListSubscribed() ([]models.Email, error) {
 	var subscriptions []models.Email
 	result := d.DB.Find(&subscriptions, "status = ?", models.Subscribed)
 	if result.Error != nil {
@@ -47,7 +47,7 @@ func (d *SubscriptionDao) ListSubscribed() ([]models.Email, error) {
 
 	return subscriptions, nil
 }
-func (d *SubscriptionDao) Update(subscription models.Email) (*models.Email, error) {
+func (d *SubscriptionRepository) Update(subscription models.Email) (*models.Email, error) {
 	result := d.DB.Updates(&subscription)
 	if result.Error != nil {
 		return nil, apperrors.ErrDatabase

@@ -22,20 +22,20 @@ func setupSQLiteDB(t *testing.T) *gorm.DB {
 func TestSubscriptionDao(t *testing.T) {
 	db := setupSQLiteDB(t)
 
-	dao := NewSubcscriptionDao(db)
+	repository := NewSubscriptionRepository(db)
 	t.Run("create new subscription record success", func(t *testing.T) {
 		email := "test@example.com"
-		createdSubscription, err := dao.Create(email)
+		createdSubscription, err := repository.Create(email)
 		require.NoError(t, err)
 		assert.Equal(t, email, createdSubscription.Email)
 		assert.Equal(t, models.Subscribed, createdSubscription.Status)
 	})
 	t.Run("find subscription success", func(t *testing.T) {
 		email := "test1@example.com"
-		_, err := dao.Create(email)
+		_, err := repository.Create(email)
 		require.NoError(t, err)
 
-		subscription, err := dao.Find(email)
+		subscription, err := repository.Find(email)
 		require.NoError(t, err)
 		assert.Equal(t, email, subscription.Email)
 		assert.Equal(t, models.Subscribed, subscription.Status)
@@ -43,24 +43,24 @@ func TestSubscriptionDao(t *testing.T) {
 	t.Run("list subscribed success", func(t *testing.T) {
 		emails := []string{"test2@example.com", "test3@example.com"}
 		for _, email := range emails {
-			_, err := dao.Create(email)
+			_, err := repository.Create(email)
 			require.NoError(t, err)
 		}
 
-		subscriptions, err := dao.ListSubscribed()
+		subscriptions, err := repository.ListSubscribed()
 		require.NoError(t, err)
 		assert.Len(t, subscriptions, 4)
 	})
 	t.Run("update subscription success", func(t *testing.T) {
 		email := "test@example.com"
-		foundSubscription, err := dao.Find(email)
+		foundSubscription, err := repository.Find(email)
 		require.NoError(t, err)
 
 		foundSubscription.Status = models.Unsubscribed
-		updatedSubscription, err := dao.Update(*foundSubscription)
+		updatedSubscription, err := repository.Update(*foundSubscription)
 		require.NoError(t, err)
 		assert.Equal(t, models.Unsubscribed, updatedSubscription.Status)
-		foundSubscription, err = dao.Find(email)
+		foundSubscription, err = repository.Find(email)
 		require.NoError(t, err)
 		assert.Equal(t, updatedSubscription.Status, foundSubscription.Status)
 		assert.Equal(t, updatedSubscription.Email, foundSubscription.Email)

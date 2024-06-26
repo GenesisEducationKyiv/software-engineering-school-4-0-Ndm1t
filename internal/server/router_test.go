@@ -8,8 +8,14 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gses4_project/internal/container"
+	"gses4_project/internal/crons"
+	"gses4_project/internal/database"
 	"gses4_project/internal/models"
 	"gses4_project/internal/pkg"
+	"gses4_project/internal/pkg/providers"
+	"gses4_project/internal/pkg/providers/chain"
+	"gses4_project/internal/server/controllers"
+	"gses4_project/internal/services"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -31,7 +37,27 @@ func setupTestServer() *Server {
 
 	cont := container.NewContainer(db)
 
-	testServer := NewServer(cont)
+	subscriptionRepository := database.NewSubscriptionRepository(db)
+
+	smtpSender := pkg.NewSMTPEmailSender()
+
+	privatProvider := providers.NewLoggingProvider("privat", providers.NewPrivatProvider())
+	exchangeAPIProvider := providers.NewLoggingProvider("exchangeAPI", providers.NewExchangeAPIProvider())
+
+	privatChain := chain.NewBaseChain(privatProvider)
+	exchangeAPIChain := chain.NewBaseChain(exchangeAPIProvider)
+	exchangeAPIChain.SetNext(privatChain)
+
+	rateService := services.NewRateService(exchangeAPIChain, cont)
+	subscriptionService := services.NewSubscriptionService(cont, subscriptionRepository)
+	informingService := services.NewInformingService(cont, smtpSender, subscriptionRepository, rateService)
+
+	cronScheduler := crons.NewCronScheduler(cont, informingService)
+
+	rateController := controllers.NewRateController(cont, rateService)
+	subscriptionController := controllers.NewSubscriptionController(cont, subscriptionService)
+
+	testServer := NewServer(cont, rateController, subscriptionController, cronScheduler)
 	return testServer
 }
 

@@ -2,7 +2,6 @@ package services
 
 import (
 	"gses4_project/internal/container"
-	"gses4_project/internal/pkg"
 )
 
 type IRateAPIProvider interface {
@@ -18,13 +17,18 @@ type RateService struct {
 	container   container.IContainer
 }
 
-func NewRateService(container container.IContainer) *RateService {
+func NewRateService(provider IRateAPIProvider, container container.IContainer) *RateService {
 	return &RateService{
-		APIProvider: pkg.NewUSDRateAPIProvider(),
+		APIProvider: provider,
 		container:   container,
 	}
 }
 
 func (r *RateService) Get() (*float64, error) {
-	return r.APIProvider.FetchRate()
+	rate, err := r.APIProvider.FetchRate()
+	if err != nil {
+		return nil, err
+	}
+
+	return rate, nil
 }

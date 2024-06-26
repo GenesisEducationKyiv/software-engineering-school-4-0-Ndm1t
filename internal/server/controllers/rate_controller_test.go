@@ -30,10 +30,10 @@ func setupTestServer(rateService services.IRateService) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 
-	container := &container.Container{}
+	appContainer := &container.Container{}
 	controller := &RateController{
 		RateService: rateService,
-		container:   container,
+		container:   appContainer,
 	}
 	router.GET("/rate", controller.Get)
 	return router

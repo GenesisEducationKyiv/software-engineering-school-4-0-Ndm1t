@@ -9,7 +9,7 @@ import (
 	"sync"
 )
 
-type SmtpEmailSender struct {
+type SMTPEmailSender struct {
 	from     string
 	user     string
 	password string
@@ -18,8 +18,8 @@ type SmtpEmailSender struct {
 	auth     smtp.Auth
 }
 
-func NewSmtpEmailSender() *SmtpEmailSender {
-	smtpSender := &SmtpEmailSender{
+func NewSMTPEmailSender() *SMTPEmailSender {
+	smtpSender := &SMTPEmailSender{
 		from:     os.Getenv("MAIL_FROM"),
 		user:     os.Getenv("MAIL_USER"),
 		password: os.Getenv("MAIL_PASSWORD"),
@@ -30,7 +30,7 @@ func NewSmtpEmailSender() *SmtpEmailSender {
 	return smtpSender
 }
 
-func (s *SmtpEmailSender) SendInforming(subscriptions []models.Email, rate float64) {
+func (s *SMTPEmailSender) SendInforming(subscriptions []models.Email, rate float64) {
 	subject := "Subject: Daily Exchange Rate\n"
 	fromHeader := fmt.Sprintf("From: %s\n", s.from)
 	body := fmt.Sprintf("The current exchange rate is: %f UAH/USD", rate)

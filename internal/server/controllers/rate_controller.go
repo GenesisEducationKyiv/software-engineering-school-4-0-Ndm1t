@@ -14,9 +14,13 @@ type RateController struct {
 	container   container.IContainer
 }
 
-func NewRateController(container container.IContainer) *RateController {
+type IRateController interface {
+	Get(ctx *gin.Context)
+}
+
+func NewRateController(container container.IContainer, rateService services.IRateService) *RateController {
 	return &RateController{
-		RateService: services.NewRateService(container),
+		RateService: rateService,
 		container:   container,
 	}
 }
