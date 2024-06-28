@@ -19,8 +19,7 @@ func NewExchangeAPIProvider() *ExchangeAPIProvider {
 }
 
 func (p *ExchangeAPIProvider) FetchRate() (*float64, error) {
-	url := os.Getenv("API_URL")
-	res, err := http.Get(url)
+	res, err := http.Get(os.Getenv("API_URL"))
 	if err != nil {
 		return nil, apperrors.ErrRateFetch
 	}

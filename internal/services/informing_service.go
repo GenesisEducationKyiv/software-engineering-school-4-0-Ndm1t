@@ -3,6 +3,7 @@ package services
 import (
 	"gses4_project/internal/container"
 	"gses4_project/internal/models"
+	"log"
 )
 
 type IEmailSender interface {
@@ -38,6 +39,7 @@ func (s *InformingService) SendEmails() {
 
 	subscriptions, err := s.SubscriptionDao.ListSubscribed()
 	if err != nil {
+		log.Printf("failed to list subscribed emails: %v", err.Error())
 		return
 	}
 

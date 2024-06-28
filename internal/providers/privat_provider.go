@@ -29,8 +29,7 @@ func NewPrivatProvider() *PrivatProvider {
 }
 
 func (p *PrivatProvider) FetchRate() (*float64, error) {
-	url := os.Getenv("PRIVAT_URL")
-	res, err := http.Get(url)
+	res, err := http.Get(os.Getenv("PRIVAT_URL"))
 	if err != nil {
 		return nil, apperrors.ErrRateFetch
 	}

@@ -1,9 +1,11 @@
 package database
 
 import (
+	"context"
 	"gorm.io/gorm"
 	"gses4_project/internal/apperrors"
 	"gses4_project/internal/models"
+	"time"
 )
 
 type SubscriptionRepository struct {
@@ -17,19 +19,25 @@ func NewSubscriptionRepository(db *gorm.DB) *SubscriptionRepository {
 }
 
 func (d *SubscriptionRepository) Find(email string) (*models.Email, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	defer cancel()
+
 	var subscription models.Email
-	result := d.DB.Where("email = ?", email).Find(&subscription)
+	result := d.DB.WithContext(ctx).Where("email = ?", email).Find(&subscription)
+
 	if result.Error != nil {
 		return nil, apperrors.ErrDatabase
 	}
 
 	return &subscription, nil
-
 }
 
 func (d *SubscriptionRepository) Create(email string) (*models.Email, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	defer cancel()
+
 	subscription := models.Email{Email: email, Status: models.Subscribed}
-	result := d.DB.Create(&subscription)
+	result := d.DB.WithContext(ctx).Create(&subscription)
 
 	if result.Error != nil {
 		return nil, apperrors.ErrDatabase
@@ -39,16 +47,25 @@ func (d *SubscriptionRepository) Create(email string) (*models.Email, error) {
 }
 
 func (d *SubscriptionRepository) ListSubscribed() ([]models.Email, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	defer cancel()
+
 	var subscriptions []models.Email
-	result := d.DB.Find(&subscriptions, "status = ?", models.Subscribed)
+	result := d.DB.WithContext(ctx).Find(&subscriptions, "status = ?", models.Subscribed)
+
 	if result.Error != nil {
 		return nil, apperrors.ErrDatabase
 	}
 
 	return subscriptions, nil
 }
+
 func (d *SubscriptionRepository) Update(subscription models.Email) (*models.Email, error) {
-	result := d.DB.Updates(&subscription)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	defer cancel()
+
+	result := d.DB.WithContext(ctx).Updates(&subscription)
+
 	if result.Error != nil {
 		return nil, apperrors.ErrDatabase
 	}
