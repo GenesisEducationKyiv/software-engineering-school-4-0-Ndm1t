@@ -7,13 +7,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gses4_project/internal/config"
 	"gses4_project/internal/container"
 	"gses4_project/internal/crons"
 	"gses4_project/internal/database"
+	"gses4_project/internal/mailers"
 	"gses4_project/internal/models"
-	"gses4_project/internal/pkg"
-	"gses4_project/internal/pkg/providers"
-	"gses4_project/internal/pkg/providers/chain"
+	providers2 "gses4_project/internal/providers"
+	"gses4_project/internal/providers/chain"
 	"gses4_project/internal/server/controllers"
 	"gses4_project/internal/services"
 	"net/http"
@@ -33,16 +34,16 @@ func setupTestServer() *Server {
 
 	db := setupSQLiteDB()
 
-	_ = pkg.LoadConfig("../../.env")
+	_ = config.LoadConfig("../../.env")
 
 	cont := container.NewContainer(db)
 
 	subscriptionRepository := database.NewSubscriptionRepository(db)
 
-	smtpSender := pkg.NewSMTPEmailSender()
+	smtpSender := mailers.NewSMTPEmailSender()
 
-	privatProvider := providers.NewLoggingProvider("privat", providers.NewPrivatProvider())
-	exchangeAPIProvider := providers.NewLoggingProvider("exchangeAPI", providers.NewExchangeAPIProvider())
+	privatProvider := providers2.NewLoggingProvider("privat", providers2.NewPrivatProvider())
+	exchangeAPIProvider := providers2.NewLoggingProvider("exchangeAPI", providers2.NewExchangeAPIProvider())
 
 	privatChain := chain.NewBaseChain(privatProvider)
 	exchangeAPIChain := chain.NewBaseChain(exchangeAPIProvider)

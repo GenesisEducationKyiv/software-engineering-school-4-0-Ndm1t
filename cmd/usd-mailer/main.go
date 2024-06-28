@@ -1,13 +1,14 @@
 package main
 
 import (
+	"gses4_project/internal/config"
 	"gses4_project/internal/container"
 	"gses4_project/internal/crons"
 	"gses4_project/internal/database"
+	"gses4_project/internal/mailers"
 	"gses4_project/internal/models"
-	"gses4_project/internal/pkg"
-	"gses4_project/internal/pkg/providers"
-	"gses4_project/internal/pkg/providers/chain"
+	"gses4_project/internal/providers"
+	"gses4_project/internal/providers/chain"
 	"gses4_project/internal/server"
 	"gses4_project/internal/server/controllers"
 	"gses4_project/internal/services"
@@ -15,7 +16,7 @@ import (
 )
 
 func main() {
-	err := pkg.LoadConfig()
+	err := config.LoadConfig()
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
@@ -29,7 +30,7 @@ func main() {
 
 	subscriptionRepository := database.NewSubscriptionRepository(db)
 
-	smtpSender := pkg.NewSMTPEmailSender()
+	smtpSender := mailers.NewSMTPEmailSender()
 
 	rateService := services.NewRateService(prepareChain(), appContainer)
 	subscriptionService := services.NewSubscriptionService(appContainer, subscriptionRepository)
