@@ -1,17 +1,53 @@
 version: "3.8"
 
 services:
-  usd-mailer:
+  informing_service:
     build:
-      context: .
+      context: ./informing
       dockerfile: Dockerfile
-    container_name: usd-mailer
+    container_name: informing-service
     ports:
-      - 80:80
+      - 8082:8082
+    depends_on:
+      - rate_service
+      - subscription_service
+    env_file:
+      - ./informing/.env
+
+  rate_service:
+    build:
+      context: ./rate
+      dockerfile: Dockerfile
+    container_name: rate-service
+    ports:
+      - 8081:8081
     depends_on:
       - postgres
     env_file:
-      - .env
+      - ./rate/.env
+
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    container_name: gateway
+    ports:
+      - 80:80
+    depends_on:
+      - subscription_service
+      - rate_service
+    env_file:
+      - ./gateway/.env
+
+  subscription_service:
+    build:
+      context: ./subscription
+      dockerfile: Dockerfile
+    container_name: subscription-service
+    ports:
+      - 8083:8083
+    env_file:
+      - ./subscription/.env
 
   postgres:
     image: postgres:13
@@ -20,7 +56,7 @@ services:
     ports:
       - 5432:5432
     env_file:
-      - .env
+      - ./subscription/.env
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
