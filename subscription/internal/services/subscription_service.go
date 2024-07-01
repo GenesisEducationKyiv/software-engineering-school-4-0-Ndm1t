@@ -1,7 +1,7 @@
 package services
 
 import (
-	"subscription-service/internal/apperrors"
+	"subscription-service/internal/app_errors"
 	"subscription-service/internal/models"
 )
 

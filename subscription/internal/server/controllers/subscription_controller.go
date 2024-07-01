@@ -4,7 +4,7 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"subscription-service/internal/apperrors"
+	"subscription-service/internal/app_errors"
 	"subscription-service/internal/models"
 	"subscription-service/internal/services"
 )

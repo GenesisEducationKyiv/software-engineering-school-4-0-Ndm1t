@@ -3,7 +3,7 @@ package database
 import (
 	"context"
 	"gorm.io/gorm"
-	"subscription-service/internal/apperrors"
+	"subscription-service/internal/app_errors"
 	"subscription-service/internal/models"
 	"time"
 )
