@@ -4,25 +4,21 @@ import (
 	"github.com/gin-gonic/gin"
 	"log"
 	"os"
-	"subscription-service/internal/crons"
 	"subscription-service/internal/server/controllers"
 )
 
 type Server struct {
 	router                 *gin.Engine
 	subscriptionController controllers.ISubscriptionController
-	Scheduler              crons.ICronScheduler
 }
 
 func NewServer(
-	subscriptionController controllers.ISubscriptionController, scheduler crons.ICronScheduler) *Server {
+	subscriptionController controllers.ISubscriptionController) *Server {
 	server := &Server{
 		router:                 gin.Default(),
 		subscriptionController: subscriptionController,
-		Scheduler:              scheduler,
 	}
 
-	server.Scheduler.Setup()
 	server.routes()
 	return server
 }

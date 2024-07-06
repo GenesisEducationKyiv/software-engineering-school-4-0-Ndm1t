@@ -3,7 +3,7 @@ package services
 import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"gses4_project/internal/apperrors"
+	"rate-service/internal/app_errors"
 	"testing"
 )
 

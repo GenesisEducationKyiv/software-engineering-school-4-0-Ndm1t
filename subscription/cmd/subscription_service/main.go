@@ -1,13 +1,13 @@
 package main
 
 import (
+	amqp "github.com/rabbitmq/amqp091-go"
 	"log"
+	"os"
 	"subscription-service/internal/config"
-	"subscription-service/internal/crons"
 	"subscription-service/internal/database"
-	kafkaClient "subscription-service/internal/kafka"
-	"subscription-service/internal/kafka/producers"
 	"subscription-service/internal/models"
+	"subscription-service/internal/rabbitmq/producers"
 	"subscription-service/internal/server"
 	"subscription-service/internal/server/controllers"
 	"subscription-service/internal/services"
@@ -21,15 +21,23 @@ func main() {
 		log.Fatalf(err.Error())
 	}
 
-	producer, err := kafkaClient.NewProducer()
-	if err != nil {
-		log.Fatalf("Failed to create producer: %v", err.Error())
-	}
-	defer producer.Close()
-
-	emailProducer := producers.NewEmailProducer(producer, topic)
-
 	db := database.ConnectDatabase()
+
+	conn, err := amqp.Dial(os.Getenv("RABBIT_URL"))
+	if err != nil {
+		log.Fatalf("Failed to connetct to rabbitmq: %v", err.Error())
+	}
+	defer func(conn *amqp.Connection) {
+		err = conn.Close()
+		if err != nil {
+			log.Fatalf("Failed to close rabbit connection: %v", err.Error())
+		}
+	}(conn)
+
+	subscriptionProducer, err := producers.NewEmailProducer(conn, topic)
+	if err != nil {
+		log.Fatalf("Failed to initialize message producer: %v", err.Error())
+	}
 
 	if err = db.AutoMigrate(&models.Email{}); err != nil {
 		log.Fatalf("Coulnd't migrate database: %v", err.Error())
@@ -37,14 +45,11 @@ func main() {
 
 	subscriptionRepository := database.NewSubscriptionRepository(db)
 
-	subscriptionService := services.NewSubscriptionService(subscriptionRepository)
-
-	cronScheduler := crons.NewCronScheduler(subscriptionService, emailProducer)
+	subscriptionService := services.NewSubscriptionService(subscriptionRepository, subscriptionProducer)
 
 	subscriptionController := controllers.NewSubscriptionController(subscriptionService)
 
-	s := server.NewServer(subscriptionController, cronScheduler)
-	s.Scheduler.Start()
-	defer s.Scheduler.Stop()
+	s := server.NewServer(subscriptionController)
+
 	s.Run()
 }

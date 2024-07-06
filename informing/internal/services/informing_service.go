@@ -1,6 +1,7 @@
 package services
 
 import (
+	"informing-service/internal/models"
 	"log"
 )
 
@@ -8,43 +9,59 @@ type (
 	IEmailSender interface {
 		SendInforming(subscriptions []string, rate float64)
 	}
-	SubscriptionClientInterface interface {
-		ListSubscribed() ([]string, error)
+
+	SubscriptionRepositoryInterface interface {
+		Create(email string) (*models.Subscription, error)
+		ListSubscribed() ([]models.Subscription, error)
+		Update(subscription models.Subscription) (*models.Subscription, error)
 	}
-	RateClientInterface interface {
-		FetchRate() (*float64, error)
+
+	RateRepositoryInterface interface {
+		Create(rate models.Rate) (*models.Rate, error)
+		GetLatest() (*models.Rate, error)
 	}
+
 	InformingServiceInterface interface {
 		SendEmails()
 	}
+
 	InformingService struct {
-		EmailSender        IEmailSender
-		subscriptionClient SubscriptionClientInterface
-		rateClient         RateClientInterface
+		EmailSender            IEmailSender
+		subscriptionRepository SubscriptionRepositoryInterface
+		rateRepository         RateRepositoryInterface
 	}
 )
 
-func NewInformingService(subscriptionClient SubscriptionClientInterface, rateClient RateClientInterface, sender IEmailSender) *InformingService {
+func NewInformingService(subscriptionRepository SubscriptionRepositoryInterface,
+	rateRepository RateRepositoryInterface,
+	sender IEmailSender) *InformingService {
 	return &InformingService{
-		EmailSender:        sender,
-		subscriptionClient: subscriptionClient,
-		rateClient:         rateClient,
+		EmailSender:            sender,
+		rateRepository:         rateRepository,
+		subscriptionRepository: subscriptionRepository,
 	}
 }
 
 func (s *InformingService) SendEmails() {
-	rate, err := s.rateClient.FetchRate()
+	rate, err := s.rateRepository.GetLatest()
 	log.Printf("Rate fetched: %v", rate)
 	if err != nil {
 		return
 	}
 
-	subscriptions, err := s.subscriptionClient.ListSubscribed()
+	subscriptions, err := s.subscriptionRepository.ListSubscribed()
 	log.Printf("Subscriptions fetched: %v", subscriptions)
 	if err != nil {
 		log.Printf("failed to list subscribed emails: %v", err.Error())
 		return
 	}
-	s.EmailSender.SendInforming(subscriptions, *rate)
+
+	var subscribedEmails []string
+
+	for _, v := range subscriptions {
+		subscribedEmails = append(subscribedEmails, v.Email)
+	}
+
+	s.EmailSender.SendInforming(subscribedEmails, rate.Rate)
 	return
 }

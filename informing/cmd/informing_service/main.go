@@ -1,14 +1,23 @@
 package main
 
 import (
-	"informing-service/internal/clients"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"informing-service/internal/config"
 	"informing-service/internal/crons"
+	"informing-service/internal/database"
 	"informing-service/internal/mailers"
+	"informing-service/internal/models"
+	"informing-service/internal/rabbitmq/consumers"
 	"informing-service/internal/server"
 	"informing-service/internal/server/controllers"
 	"informing-service/internal/services"
 	"log"
+	"os"
+)
+
+const (
+	emailsTopic = "emails"
+	rateTopic   = "rates"
 )
 
 func main() {
@@ -17,12 +26,44 @@ func main() {
 		log.Fatalf(err.Error())
 	}
 
+	db := database.ConnectDatabase()
+
+	if err = db.AutoMigrate(&models.Subscription{}, &models.Rate{}); err != nil {
+		log.Fatalf("Coulnd't migrate database: %v", err.Error())
+	}
+
+	subscriptionRepository := database.NewSubscriptionRepository(db)
+	rateRepository := database.NewRateRepository(db)
+
+	conn, err := amqp.Dial(os.Getenv("RABBIT_URL"))
+	if err != nil {
+		log.Fatalf("Failed to connetct to rabbitmq: %v", err.Error())
+	}
+	defer func(conn *amqp.Connection) {
+		err = conn.Close()
+		if err != nil {
+			log.Fatalf("Failed to close rabbit connection: %v", err.Error())
+		}
+	}(conn)
+
+	subscriptionConsuemr, err := consumers.NewSubscriptionConsumer(conn, emailsTopic, subscriptionRepository)
+	if err != nil {
+		log.Fatalf("Failed to initialize message producer: %v", err.Error())
+	}
+	defer subscriptionConsuemr.Chan.Close()
+
+	rateConsumer, err := consumers.NewRateConsumer(conn, rateTopic, rateRepository)
+	if err != nil {
+		log.Fatalf("Failed to initialize message producer: %v", err.Error())
+	}
+	defer rateConsumer.Chan.Close()
+
+	subscriptionConsuemr.Listen()
+	rateConsumer.Listen()
+
 	smtpSender := mailers.NewSMTPEmailSender()
 
-	rateCLient := clients.NewRateClient()
-	subscriptionClient := clients.NewSubscriptionClient()
-
-	informingService := services.NewInformingService(subscriptionClient, rateCLient, smtpSender)
+	informingService := services.NewInformingService(subscriptionRepository, rateRepository, smtpSender)
 
 	cronScheduler := crons.NewCronScheduler(informingService)
 
