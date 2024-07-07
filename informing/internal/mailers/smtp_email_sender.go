@@ -2,10 +2,8 @@ package mailers
 
 import (
 	"fmt"
-	"log"
 	"net/smtp"
 	"os"
-	"sync"
 )
 
 type SMTPEmailSender struct {
@@ -29,25 +27,17 @@ func NewSMTPEmailSender() *SMTPEmailSender {
 	return smtpSender
 }
 
-func (s *SMTPEmailSender) SendInforming(subscriptions []string, rate float64) {
+func (s *SMTPEmailSender) SendInforming(email string, rate float64) error {
 	subject := "Subject: Daily Exchange Rate\n"
 	fromHeader := fmt.Sprintf("From: %s\n", s.from)
 	body := fmt.Sprintf("The current exchange rate is: %f UAH/USD", rate)
 
-	var wg sync.WaitGroup
-
-	for _, v := range subscriptions {
-		wg.Add(1)
-		go func(email string) {
-			defer wg.Done()
-			toHeader := fmt.Sprintf("To: %s\n", email)
-			msg := []byte(subject + fromHeader + toHeader + "\n" + body)
-			err := smtp.SendMail(s.host+":"+s.port, s.auth, s.from, []string{email}, msg)
-			if err != nil {
-				log.Println(err.Error())
-			}
-		}(v)
+	toHeader := fmt.Sprintf("To: %s\n", email)
+	msg := []byte(subject + fromHeader + toHeader + "\n" + body)
+	err := smtp.SendMail(s.host+":"+s.port, s.auth, s.from, []string{email}, msg)
+	if err != nil {
+		return err
 	}
 
-	wg.Wait()
+	return err
 }

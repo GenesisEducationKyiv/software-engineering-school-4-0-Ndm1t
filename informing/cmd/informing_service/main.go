@@ -8,6 +8,7 @@ import (
 	"informing-service/internal/mailers"
 	"informing-service/internal/models"
 	"informing-service/internal/rabbitmq/consumers"
+	"informing-service/internal/rabbitmq/producers"
 	"informing-service/internal/server"
 	"informing-service/internal/server/controllers"
 	"informing-service/internal/services"
@@ -46,7 +47,19 @@ func main() {
 		}
 	}(conn)
 
-	subscriptionConsumer, err := consumers.NewSubscriptionConsumer(conn, emailsTopic, subscriptionRepository)
+	smtpSender := mailers.NewSMTPEmailSender()
+
+	subscriptionProducer, err := producers.NewEmailProducer(conn, emailsTopic)
+	if err != nil {
+		log.Fatalf("failed to initialize subscription producer: %v", err)
+	}
+
+	subscriptionConsumer, err := consumers.NewSubscriptionConsumer(
+		conn,
+		emailsTopic,
+		subscriptionRepository,
+		rateRepository,
+		smtpSender)
 	if err != nil {
 		log.Fatalf("Failed to initialize message producer: %v", err.Error())
 	}
@@ -61,9 +74,7 @@ func main() {
 	subscriptionConsumer.Listen()
 	rateConsumer.Listen()
 
-	smtpSender := mailers.NewSMTPEmailSender()
-
-	informingService := services.NewInformingService(subscriptionRepository, rateRepository, smtpSender)
+	informingService := services.NewInformingService(subscriptionRepository, subscriptionProducer)
 
 	cronScheduler := crons.NewCronScheduler(informingService)
 

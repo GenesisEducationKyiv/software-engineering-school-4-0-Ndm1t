@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"gorm.io/gorm"
+	"time"
+)
 
 type SubscriptionStatus string
 
@@ -13,5 +16,5 @@ type Subscription struct {
 	Email     string             `gorm:"primaryKey" json:"email"`
 	Status    SubscriptionStatus `gorm:"default:subscribed" json:"status"`
 	CreatedAt time.Time          `gorm:"autoCreateTime" json:"createdAt"`
-	DeletedAt *time.Time         `gorm:"index" json:"deletedAt"`
+	DeletedAt gorm.DeletedAt     `gorm:"index" json:"deletedAt"`
 }

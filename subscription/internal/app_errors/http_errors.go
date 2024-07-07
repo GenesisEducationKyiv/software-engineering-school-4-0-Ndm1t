@@ -34,4 +34,7 @@ var (
 		map[string]interface{}{
 			"error": "database raised an error",
 		})
+	ErrAlreadyUnsubscribed = NewHttpError("subscription is already deactivated", http.StatusInternalServerError, map[string]interface{}{
+		"error": "subscription is already deactivated",
+	})
 )

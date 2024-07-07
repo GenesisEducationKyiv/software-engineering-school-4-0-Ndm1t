@@ -31,6 +31,7 @@ func (s *Server) routes() {
 	{
 		api.POST("/subscribe", s.subscriptionController.Subscribe)
 		api.GET("/rate", s.rateController.Get)
+		api.POST("/unsubscribe", s.subscriptionController.Unsubscribe)
 	}
 }
 

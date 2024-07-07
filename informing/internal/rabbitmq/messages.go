@@ -1,7 +1,9 @@
 package rabbitmq
 
 import (
+	"github.com/google/uuid"
 	"informing-service/internal/models"
+	"time"
 )
 
 type (
@@ -21,3 +23,13 @@ type (
 		Data        models.Rate `json:"data"`
 	}
 )
+
+func NewSubscriptionMessage(eventType string, subscription models.Subscription) SubscriptionMessage {
+	return SubscriptionMessage{
+		EventID:     uuid.NewString(),
+		EventType:   eventType,
+		AggregateID: subscription.Email,
+		Timestamp:   time.Now().String(),
+		Data:        subscription,
+	}
+}

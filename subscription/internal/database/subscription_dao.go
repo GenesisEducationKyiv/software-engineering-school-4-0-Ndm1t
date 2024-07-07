@@ -72,3 +72,16 @@ func (d *SubscriptionRepository) Update(subscription models.Email) (*models.Emai
 
 	return &subscription, nil
 }
+
+func (d *SubscriptionRepository) Delete(subscription *models.Email) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	defer cancel()
+
+	result := d.DB.WithContext(ctx).Delete(subscription)
+
+	if result.Error != nil {
+		return apperrors.ErrDatabase
+	}
+
+	return nil
+}
