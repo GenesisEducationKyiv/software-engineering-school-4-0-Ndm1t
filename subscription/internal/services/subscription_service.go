@@ -43,6 +43,10 @@ func NewSubscriptionService(
 func (s *SubscriptionService) Subscribe(email string) (*models.Email, error) {
 	subscription, err := s.SubscriptionDao.Find(email)
 
+	if err != nil {
+		return nil, apperrors.ErrDatabase
+	}
+
 	if subscription != nil && subscription.Status == models.Subscribed {
 		return nil, apperrors.ErrSubscriptionAlreadyExists
 	}
@@ -50,10 +54,16 @@ func (s *SubscriptionService) Subscribe(email string) (*models.Email, error) {
 	if subscription.Status == models.Unsubscribed {
 		subscription.Status = models.Subscribed
 		subscription, err = s.SubscriptionDao.Update(*subscription)
+		if err != nil {
+			return nil, apperrors.ErrDatabase
+		}
 	}
 
 	if (models.Email{}) == *subscription {
 		subscription, err = s.SubscriptionDao.Create(email)
+		if err != nil {
+			return nil, apperrors.ErrDatabase
+		}
 	}
 
 	err = s.SubscriptionProducer.Publish(subscriptionCreatedEvent, *subscription, context.Background())

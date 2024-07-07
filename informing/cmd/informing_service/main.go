@@ -46,11 +46,11 @@ func main() {
 		}
 	}(conn)
 
-	subscriptionConsuemr, err := consumers.NewSubscriptionConsumer(conn, emailsTopic, subscriptionRepository)
+	subscriptionConsumer, err := consumers.NewSubscriptionConsumer(conn, emailsTopic, subscriptionRepository)
 	if err != nil {
 		log.Fatalf("Failed to initialize message producer: %v", err.Error())
 	}
-	defer subscriptionConsuemr.Chan.Close()
+	defer subscriptionConsumer.Chan.Close()
 
 	rateConsumer, err := consumers.NewRateConsumer(conn, rateTopic, rateRepository)
 	if err != nil {
@@ -58,7 +58,7 @@ func main() {
 	}
 	defer rateConsumer.Chan.Close()
 
-	subscriptionConsuemr.Listen()
+	subscriptionConsumer.Listen()
 	rateConsumer.Listen()
 
 	smtpSender := mailers.NewSMTPEmailSender()

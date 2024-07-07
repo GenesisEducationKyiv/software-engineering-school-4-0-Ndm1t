@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	EveryHour = "0 * * * *"
+	EveryDayAt1Am = "0 1 * * *"
 )
 
 type CronScheduler struct {
@@ -31,7 +31,7 @@ func NewCronScheduler(
 }
 
 func (s *CronScheduler) Setup() {
-	_, err := s.Cron.AddFunc(EveryHour, func() {
+	_, err := s.Cron.AddFunc(EveryDayAt1Am, func() {
 		_, err := s.rateService.Get()
 		if err != nil {
 			log.Print(err)
