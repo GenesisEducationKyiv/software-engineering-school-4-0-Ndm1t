@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gorm.io/gorm"
 	"informing-service/internal/models"
+	"time"
 )
 
 type SubscriptionRepository struct {
@@ -69,4 +70,18 @@ func (d *SubscriptionRepository) Delete(subscription models.Subscription) error 
 	}
 
 	return nil
+}
+
+func (d *SubscriptionRepository) Find(email string) (*models.Subscription, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	defer cancel()
+
+	var subscription models.Subscription
+	result := d.DB.WithContext(ctx).Where("email = ?", email).Find(&subscription)
+
+	if result.Error != nil {
+		return nil, fmt.Errorf("databese error: %v", result.Error.Error())
+	}
+
+	return &subscription, nil
 }

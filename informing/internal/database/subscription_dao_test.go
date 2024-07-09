@@ -9,18 +9,18 @@ import (
 	"testing"
 )
 
-func setupSQLiteDB(t *testing.T) *gorm.DB {
+func SetupSQLiteDB(t *testing.T) *gorm.DB {
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	require.NoError(t, err)
 
-	err = db.AutoMigrate(&models.Subscription{})
+	err = db.AutoMigrate(&models.Subscription{}, &models.Rate{})
 	require.NoError(t, err)
 
 	return db
 }
 
 func TestSubscriptionDao(t *testing.T) {
-	db := setupSQLiteDB(t)
+	db := SetupSQLiteDB(t)
 
 	repository := NewSubscriptionRepository(db)
 	t.Run("create new subscription record success", func(t *testing.T) {
@@ -68,6 +68,17 @@ func TestSubscriptionDao(t *testing.T) {
 		assert.Equal(t, updatedSubscription.DeletedAt, foundSubscription.DeletedAt)
 
 	})
+	t.Run("delete subscription success", func(t *testing.T) {
+		email := "test@example.com"
+		foundSubscription, err := repository.Find(email)
+		require.NoError(t, err)
+		err = repository.Delete(*foundSubscription)
+		require.NoError(t, err)
+		foundSubscription, err = repository.Find(email)
+		require.NoError(t, err)
+		assert.Equal(t, models.Subscription{}, *foundSubscription)
 
-	_ = db.Migrator().DropTable(&models.Email{})
+	})
+
+	_ = db.Migrator().DropTable(&models.Subscription{})
 }

@@ -69,11 +69,10 @@ func (s *SubscriptionService) Subscribe(email string) (*models.Email, error) {
 		if err != nil {
 			return nil, apperrors.ErrDatabase
 		}
-	}
-
-	err = s.SubscriptionProducer.Publish(subscriptionCreatedEvent, *subscription, context.Background())
-	if err != nil {
-		return nil, err
+		err = s.SubscriptionProducer.Publish(subscriptionCreatedEvent, *subscription, context.Background())
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return subscription, err
