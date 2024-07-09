@@ -5,7 +5,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"subscription-service/internal/models"
+	"informing-service/internal/models"
 	"testing"
 )
 
@@ -13,7 +13,7 @@ func setupSQLiteDB(t *testing.T) *gorm.DB {
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	require.NoError(t, err)
 
-	err = db.AutoMigrate(&models.Email{})
+	err = db.AutoMigrate(&models.Subscription{})
 	require.NoError(t, err)
 
 	return db

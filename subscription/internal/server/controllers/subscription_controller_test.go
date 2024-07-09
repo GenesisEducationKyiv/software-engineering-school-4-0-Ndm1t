@@ -7,12 +7,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"gses4_project/internal/apperrors"
-	"gses4_project/internal/container"
-	"gses4_project/internal/services"
-	"gses4_project/subscription/internal/models"
 	"net/http"
 	"net/http/httptest"
+	"subscription-service/internal/app_errors"
+	"subscription-service/internal/models"
+	"subscription-service/internal/services"
 	"testing"
 )
 
@@ -29,14 +28,21 @@ func (m *MockSubscriptionService) Subscribe(email string) (*models.Email, error)
 	return nil, args.Error(1)
 }
 
+func (m *MockSubscriptionService) ListSubscribed() ([]string, error) {
+	args := m.Called()
+	if args.Get(0) != nil {
+		emails := args.Get(0).([]string)
+		return emails, args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
 func setupSubscriptionTestServer(subscriptionService services.ISubscriptionService) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 
-	appContainer := &container.Container{}
 	controller := &SubscriptionController{
 		SubscriptionService: subscriptionService,
-		container:           appContainer,
 	}
 	router.POST("/subscribe", controller.Subscribe)
 	return router

@@ -1,100 +1,100 @@
 package services
 
 import (
+	"errors"
 	"github.com/stretchr/testify/mock"
-	"gses4_project/internal/apperrors"
-	"gses4_project/internal/models"
+	"informing-service/internal/models"
 	"testing"
 )
 
+// Mocking the interfaces
 type MockEmailSender struct {
 	mock.Mock
 }
 
-func (m *MockEmailSender) SendInforming(subscriptions []models.Email, rate float64) {
+func (m *MockEmailSender) SendInforming(subscriptions []string, rate float64) {
 	m.Called(subscriptions, rate)
 }
 
-type MockRateService struct {
+type MockSubscriptionRepository struct {
 	mock.Mock
 }
 
-func (m *MockRateService) Get() (*float64, error) {
+func (m *MockSubscriptionRepository) Create(email string) (*models.Subscription, error) {
+	args := m.Called(email)
+	return args.Get(0).(*models.Subscription), args.Error(1)
+}
+
+func (m *MockSubscriptionRepository) ListSubscribed() ([]models.Subscription, error) {
 	args := m.Called()
-	if args.Get(0) != nil {
-		rate := args.Get(0).(float64)
-		return &rate, args.Error(1)
-	}
-	return nil, args.Error(1)
+	return args.Get(0).([]models.Subscription), args.Error(1)
 }
 
-func TestInformingService_SendEmails_Success(t *testing.T) {
-	mockEmailSender := new(MockEmailSender)
-	mockSubscriptionDao := new(MockSubscriptionDao)
-	mockRateService := new(MockRateService)
-
-	rate := 27.5
-	subscriptions := []models.Email{
-		{Email: "test1@example.com", Status: models.Subscribed},
-		{Email: "test2@example.com", Status: models.Subscribed},
-	}
-
-	mockRateService.On("Get").Return(rate, nil)
-	mockSubscriptionDao.On("ListSubscribed").Return(subscriptions, nil)
-	mockEmailSender.On("SendInforming", subscriptions, rate).Return()
-
-	service := &InformingService{
-		EmailSender:     mockEmailSender,
-		SubscriptionDao: mockSubscriptionDao,
-		RateService:     mockRateService,
-	}
-
-	service.SendEmails()
-
-	mockRateService.AssertExpectations(t)
-	mockSubscriptionDao.AssertExpectations(t)
-	mockEmailSender.AssertExpectations(t)
+func (m *MockSubscriptionRepository) Update(subscription models.Subscription) (*models.Subscription, error) {
+	args := m.Called(subscription)
+	return args.Get(0).(*models.Subscription), args.Error(1)
 }
 
-func TestInformingService_SendEmails_FailRateFetch(t *testing.T) {
-	mockEmailSender := new(MockEmailSender)
-	mockSubscriptionDao := new(MockSubscriptionDao)
-	mockRateService := new(MockRateService)
-
-	mockRateService.On("Get").Return(nil, apperrors.ErrRateFetch)
-
-	service := &InformingService{
-		EmailSender:     mockEmailSender,
-		SubscriptionDao: mockSubscriptionDao,
-		RateService:     mockRateService,
-	}
-
-	service.SendEmails()
-
-	mockRateService.AssertExpectations(t)
-	mockSubscriptionDao.AssertNotCalled(t, "ListSubscribed")
-	mockEmailSender.AssertNotCalled(t, "SendInforming")
+type MockRateRepository struct {
+	mock.Mock
 }
 
-func TestInformingService_SendEmails_FailSubscriptionFetch(t *testing.T) {
+func (m *MockRateRepository) Create(rate models.Rate) (*models.Rate, error) {
+	args := m.Called(rate)
+	return args.Get(0).(*models.Rate), args.Error(1)
+}
+
+func (m *MockRateRepository) GetLatest() (*models.Rate, error) {
+	args := m.Called()
+	return args.Get(0).(*models.Rate), args.Error(1)
+}
+
+func TestInformingService_SendEmails(t *testing.T) {
 	mockEmailSender := new(MockEmailSender)
-	mockSubscriptionDao := new(MockSubscriptionDao)
-	mockRateService := new(MockRateService)
+	mockSubscriptionRepo := new(MockSubscriptionRepository)
+	mockRateRepo := new(MockRateRepository)
 
-	rate := 27.5
+	service := NewInformingService(mockSubscriptionRepo, mockRateRepo, mockEmailSender)
 
-	mockRateService.On("Get").Return(rate, nil)
-	mockSubscriptionDao.On("ListSubscribed").Return(nil, apperrors.ErrDatabase)
+	t.Run("success", func(t *testing.T) {
+		mockRate := &models.Rate{Rate: 42.0}
+		mockSubscriptions := []models.Subscription{
+			{Email: "test1@example.com"},
+			{Email: "test2@example.com"},
+		}
+		subscribedEmails := []string{"test1@example.com", "test2@example.com"}
 
-	service := &InformingService{
-		EmailSender:     mockEmailSender,
-		SubscriptionDao: mockSubscriptionDao,
-		RateService:     mockRateService,
-	}
+		mockRateRepo.On("GetLatest").Return(mockRate, nil)
+		mockSubscriptionRepo.On("ListSubscribed").Return(mockSubscriptions, nil)
+		mockEmailSender.On("SendInforming", subscribedEmails, mockRate.Rate).Return(nil)
 
-	service.SendEmails()
+		service.SendEmails()
 
-	mockRateService.AssertExpectations(t)
-	mockSubscriptionDao.AssertExpectations(t)
-	mockEmailSender.AssertNotCalled(t, "SendInforming")
+		mockRateRepo.AssertCalled(t, "GetLatest")
+		mockSubscriptionRepo.AssertCalled(t, "ListSubscribed")
+		mockEmailSender.AssertCalled(t, "SendInforming", subscribedEmails, mockRate.Rate)
+	})
+
+	t.Run("rate fetch failure", func(t *testing.T) {
+		mockRateRepo.On("GetLatest").Return(nil, errors.New("rate fetch error"))
+
+		service.SendEmails()
+
+		mockRateRepo.AssertCalled(t, "GetLatest")
+		mockSubscriptionRepo.AssertNotCalled(t, "ListSubscribed")
+		mockEmailSender.AssertNotCalled(t, "SendInforming", mock.Anything, mock.Anything)
+	})
+
+	t.Run("subscription fetch failure", func(t *testing.T) {
+		mockRate := &models.Rate{Rate: 42.0}
+
+		mockRateRepo.On("GetLatest").Return(mockRate, nil)
+		mockSubscriptionRepo.On("ListSubscribed").Return(nil, errors.New("subscription fetch error"))
+
+		service.SendEmails()
+
+		mockRateRepo.AssertCalled(t, "GetLatest")
+		mockSubscriptionRepo.AssertCalled(t, "ListSubscribed")
+		mockEmailSender.AssertNotCalled(t, "SendInforming", mock.Anything, mockRate.Rate)
+	})
 }

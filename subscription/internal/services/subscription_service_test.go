@@ -3,8 +3,8 @@ package services
 import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"gses4_project/internal/apperrors"
-	"gses4_project/subscription/internal/models"
+	"subscription-service/internal/app_errors"
+	"subscription-service/internal/models"
 	"testing"
 )
 

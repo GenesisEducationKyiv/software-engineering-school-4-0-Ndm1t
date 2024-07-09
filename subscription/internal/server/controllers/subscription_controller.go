@@ -61,5 +61,4 @@ func (c *SubscriptionController) ListSubscribed(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"subscriptions": subscriptions,
 	})
-	return
 }

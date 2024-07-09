@@ -4,19 +4,24 @@ import (
 	"github.com/gin-gonic/gin"
 	"log"
 	"os"
+	"rate-service/internal/crons"
 	"rate-service/internal/server/controllers"
 )
 
 type Server struct {
 	rateController controllers.IRateController
 	router         *gin.Engine
+	Scheduler      crons.ICronScheduler
 }
 
-func NewServer(rateController controllers.IRateController) *Server {
+func NewServer(rateController controllers.IRateController, scheduler crons.ICronScheduler) *Server {
 	server := &Server{
 		router:         gin.Default(),
 		rateController: rateController,
+		Scheduler:      scheduler,
 	}
+
+	server.Scheduler.Setup()
 	server.routes()
 	return server
 }
