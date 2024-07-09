@@ -6,7 +6,10 @@ import (
 	"gorm.io/gorm"
 	"log"
 	"os"
+	"time"
 )
+
+const DBTimeout = time.Second * 2
 
 func ConnectDatabase() *gorm.DB {
 	dsn := fmt.Sprintf(

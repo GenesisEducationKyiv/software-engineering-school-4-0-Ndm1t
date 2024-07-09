@@ -33,7 +33,7 @@ func (d *SubscriptionRepository) Find(email string) (*models.Email, error) {
 }
 
 func (d *SubscriptionRepository) Create(email string) (*models.Email, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	ctx, cancel := context.WithTimeout(context.Background(), DBTimeout)
 	defer cancel()
 
 	subscription := models.Email{Email: email, Status: models.Subscribed}
@@ -47,7 +47,7 @@ func (d *SubscriptionRepository) Create(email string) (*models.Email, error) {
 }
 
 func (d *SubscriptionRepository) ListSubscribed() ([]models.Email, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	ctx, cancel := context.WithTimeout(context.Background(), DBTimeout)
 	defer cancel()
 
 	var subscriptions []models.Email
@@ -61,7 +61,7 @@ func (d *SubscriptionRepository) ListSubscribed() ([]models.Email, error) {
 }
 
 func (d *SubscriptionRepository) Update(subscription models.Email) (*models.Email, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	ctx, cancel := context.WithTimeout(context.Background(), DBTimeout)
 	defer cancel()
 
 	result := d.DB.WithContext(ctx).Updates(&subscription)

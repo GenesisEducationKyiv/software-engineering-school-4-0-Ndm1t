@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"gorm.io/gorm"
 	"informing-service/internal/models"
-	"time"
 )
 
 type SubscriptionRepository struct {
@@ -19,7 +18,7 @@ func NewSubscriptionRepository(db *gorm.DB) *SubscriptionRepository {
 }
 
 func (d *SubscriptionRepository) Create(email string) (*models.Subscription, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	ctx, cancel := context.WithTimeout(context.Background(), DBTimeout)
 	defer cancel()
 
 	subscription := models.Subscription{Email: email, Status: models.Subscribed}
@@ -33,7 +32,7 @@ func (d *SubscriptionRepository) Create(email string) (*models.Subscription, err
 }
 
 func (d *SubscriptionRepository) ListSubscribed() ([]models.Subscription, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	ctx, cancel := context.WithTimeout(context.Background(), DBTimeout)
 	defer cancel()
 
 	var subscriptions []models.Subscription
@@ -47,7 +46,7 @@ func (d *SubscriptionRepository) ListSubscribed() ([]models.Subscription, error)
 }
 
 func (d *SubscriptionRepository) Update(subscription models.Subscription) (*models.Subscription, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	ctx, cancel := context.WithTimeout(context.Background(), DBTimeout)
 	defer cancel()
 
 	result := d.DB.WithContext(ctx).Updates(&subscription)

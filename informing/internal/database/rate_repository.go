@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"gorm.io/gorm"
 	"informing-service/internal/models"
-	"time"
 )
 
 type RateRepository struct {
@@ -19,7 +18,7 @@ func NewRateRepository(db *gorm.DB) *RateRepository {
 }
 
 func (r *RateRepository) Create(rate models.Rate) (*models.Rate, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	ctx, cancel := context.WithTimeout(context.Background(), DBTimeout)
 	defer cancel()
 
 	result := r.DB.WithContext(ctx).Create(&rate)
@@ -32,7 +31,7 @@ func (r *RateRepository) Create(rate models.Rate) (*models.Rate, error) {
 }
 
 func (r *RateRepository) GetLatest() (*models.Rate, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	ctx, cancel := context.WithTimeout(context.Background(), DBTimeout)
 	defer cancel()
 
 	var rate models.Rate
