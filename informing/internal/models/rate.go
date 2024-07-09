@@ -13,6 +13,6 @@ type Rate struct {
 }
 
 func (r *Rate) BeforeCreate(tx *gorm.DB) (err error) {
-	r.ID, _ = uuid.NewUUID()
+	r.ID, err = uuid.NewUUID()
 	return
 }
