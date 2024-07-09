@@ -57,3 +57,16 @@ func (d *SubscriptionRepository) Update(subscription models.Subscription) (*mode
 
 	return &subscription, nil
 }
+
+func (d *SubscriptionRepository) Delete(subscription models.Subscription) error {
+	ctx, cancel := context.WithTimeout(context.Background(), DBTimeout)
+	defer cancel()
+
+	result := d.DB.WithContext(ctx).Unscoped().Delete(&subscription)
+
+	if result.Error != nil {
+		return fmt.Errorf("failed to delete subscription: %v", result.Error)
+	}
+
+	return nil
+}
