@@ -3,10 +3,10 @@ package providers
 import (
 	"encoding/json"
 	"errors"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"rate-service/internal/app_errors"
 	"testing"
 )
@@ -20,10 +20,10 @@ func mockServer(handler http.HandlerFunc) (*httptest.Server, func()) {
 }
 
 func setEnv(key, value string) func() {
-	oldValue := os.Getenv(key)
-	_ = os.Setenv(key, value)
+	oldValue := viper.GetString(key)
+	viper.Set(key, value)
 	return func() {
-		_ = os.Setenv(key, oldValue)
+		viper.Set(key, oldValue)
 	}
 }
 

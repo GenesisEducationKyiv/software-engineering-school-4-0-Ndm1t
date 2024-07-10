@@ -2,8 +2,8 @@ package mailers
 
 import (
 	"fmt"
+	"github.com/spf13/viper"
 	"net/smtp"
-	"os"
 )
 
 type SMTPEmailSender struct {
@@ -17,11 +17,11 @@ type SMTPEmailSender struct {
 
 func NewSMTPEmailSender() *SMTPEmailSender {
 	smtpSender := &SMTPEmailSender{
-		from:     os.Getenv("MAIL_FROM"),
-		user:     os.Getenv("MAIL_USER"),
-		password: os.Getenv("MAIL_PASSWORD"),
-		host:     os.Getenv("MAIL_HOST"),
-		port:     os.Getenv("MAIL_PORT"),
+		from:     viper.GetString("MAIL_FROM"),
+		user:     viper.GetString("MAIL_USER"),
+		password: viper.GetString("MAIL_PASSWORD"),
+		host:     viper.GetString("MAIL_HOST"),
+		port:     viper.GetString("MAIL_PORT"),
 	}
 	smtpSender.auth = smtp.PlainAuth("", smtpSender.user, smtpSender.password, smtpSender.host)
 	return smtpSender

@@ -2,9 +2,9 @@ package providers
 
 import (
 	"encoding/json"
+	"github.com/spf13/viper"
 	"io"
 	"net/http"
-	"os"
 	"rate-service/internal/app_errors"
 )
 
@@ -19,7 +19,7 @@ func NewExchangeAPIProvider() *ExchangeAPIProvider {
 }
 
 func (p *ExchangeAPIProvider) FetchRate() (*float64, error) {
-	res, err := http.Get(os.Getenv("API_URL"))
+	res, err := http.Get(viper.GetString("API_URL"))
 	if err != nil {
 		return nil, apperrors.ErrRateFetch
 	}

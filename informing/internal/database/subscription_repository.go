@@ -18,12 +18,12 @@ func NewSubscriptionRepository(db *gorm.DB) *SubscriptionRepository {
 	}
 }
 
-func (d *SubscriptionRepository) Create(email string) (*models.Subscription, error) {
+func (r *SubscriptionRepository) Create(email string) (*models.Subscription, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), DBTimeout)
 	defer cancel()
 
 	subscription := models.Subscription{Email: email, Status: models.Subscribed}
-	result := d.DB.WithContext(ctx).Create(&subscription)
+	result := r.DB.WithContext(ctx).Create(&subscription)
 
 	if result.Error != nil {
 		return nil, result.Error
@@ -32,12 +32,12 @@ func (d *SubscriptionRepository) Create(email string) (*models.Subscription, err
 	return &subscription, nil
 }
 
-func (d *SubscriptionRepository) ListSubscribed() ([]models.Subscription, error) {
+func (r *SubscriptionRepository) ListSubscribed() ([]models.Subscription, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), DBTimeout)
 	defer cancel()
 
 	var subscriptions []models.Subscription
-	result := d.DB.WithContext(ctx).Find(&subscriptions, "status = ?", models.Subscribed)
+	result := r.DB.WithContext(ctx).Find(&subscriptions, "status = ?", models.Subscribed)
 
 	if result.Error != nil {
 		return nil, fmt.Errorf("databese error: %v", result.Error.Error())
@@ -46,11 +46,11 @@ func (d *SubscriptionRepository) ListSubscribed() ([]models.Subscription, error)
 	return subscriptions, nil
 }
 
-func (d *SubscriptionRepository) Update(subscription models.Subscription) (*models.Subscription, error) {
+func (r *SubscriptionRepository) Update(subscription models.Subscription) (*models.Subscription, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), DBTimeout)
 	defer cancel()
 
-	result := d.DB.WithContext(ctx).Updates(&subscription)
+	result := r.DB.WithContext(ctx).Updates(&subscription)
 
 	if result.Error != nil {
 		return nil, fmt.Errorf("databese error: %v", result.Error.Error())
@@ -59,11 +59,11 @@ func (d *SubscriptionRepository) Update(subscription models.Subscription) (*mode
 	return &subscription, nil
 }
 
-func (d *SubscriptionRepository) Delete(subscription models.Subscription) error {
+func (r *SubscriptionRepository) Delete(subscription models.Subscription) error {
 	ctx, cancel := context.WithTimeout(context.Background(), DBTimeout)
 	defer cancel()
 
-	result := d.DB.WithContext(ctx).Unscoped().Delete(&subscription)
+	result := r.DB.WithContext(ctx).Unscoped().Delete(&subscription)
 
 	if result.Error != nil {
 		return fmt.Errorf("failed to delete subscription: %v", result.Error)
@@ -72,12 +72,12 @@ func (d *SubscriptionRepository) Delete(subscription models.Subscription) error 
 	return nil
 }
 
-func (d *SubscriptionRepository) Find(email string) (*models.Subscription, error) {
+func (r *SubscriptionRepository) Find(email string) (*models.Subscription, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 
 	var subscription models.Subscription
-	result := d.DB.WithContext(ctx).Where("email = ?", email).Find(&subscription)
+	result := r.DB.WithContext(ctx).Where("email = ?", email).Find(&subscription)
 
 	if result.Error != nil {
 		return nil, fmt.Errorf("databese error: %v", result.Error.Error())

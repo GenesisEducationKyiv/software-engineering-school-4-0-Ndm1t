@@ -29,14 +29,18 @@ func TestSubscriptionService_Subscribe_AlreadySubscribed(t *testing.T) {
 
 func TestSubscriptionService_Subscribe_Unsubscribed(t *testing.T) {
 	mockDao := new(mocks.MockSubscriptionDao)
+	mockProducer := new(mocks.MockSubscriptionProducer)
 	email := "test@example.com"
 	subscription := &models.Email{Email: email, Status: models.Unsubscribed}
 	updatedSubscription := &models.Email{Email: email, Status: models.Subscribed}
 	mockDao.On("Find", email).Return(subscription, nil)
 	mockDao.On("Update", *updatedSubscription).Return(updatedSubscription, nil)
+	mockProducer.On("Publish", "SubscriptionCreated", *updatedSubscription, context.Background()).
+		Return(nil)
 
 	service := &SubscriptionService{
-		SubscriptionDao: mockDao,
+		SubscriptionDao:      mockDao,
+		SubscriptionProducer: mockProducer,
 	}
 
 	result, err := service.Subscribe(email)
@@ -45,6 +49,7 @@ func TestSubscriptionService_Subscribe_Unsubscribed(t *testing.T) {
 	assert.Equal(t, updatedSubscription, result)
 
 	mockDao.AssertExpectations(t)
+	mockProducer.AssertExpectations(t)
 }
 
 func TestSubscriptionService_Subscribe_Success(t *testing.T) {

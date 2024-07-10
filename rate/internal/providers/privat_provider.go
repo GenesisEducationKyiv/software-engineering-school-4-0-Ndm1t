@@ -2,9 +2,9 @@ package providers
 
 import (
 	"encoding/json"
+	"github.com/spf13/viper"
 	"io"
 	"net/http"
-	"os"
 	"rate-service/internal/app_errors"
 	"strconv"
 )
@@ -29,7 +29,7 @@ func NewPrivatProvider() *PrivatProvider {
 }
 
 func (p *PrivatProvider) FetchRate() (*float64, error) {
-	res, err := http.Get(os.Getenv("PRIVAT_URL"))
+	res, err := http.Get(viper.GetString("PRIVAT_URL"))
 	if err != nil {
 		return nil, apperrors.ErrRateFetch
 	}

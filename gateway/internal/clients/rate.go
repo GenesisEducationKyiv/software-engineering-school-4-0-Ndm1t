@@ -1,9 +1,9 @@
 package clients
 
 import (
+	"github.com/spf13/viper"
 	"io"
 	"net/http"
-	"os"
 )
 
 const getRateEndpoint = "/rate"
@@ -17,7 +17,7 @@ func NewRateClient() *RateClient {
 }
 
 func (c *RateClient) FetchRate() (*int, *string, []byte, error) {
-	rateUrl := os.Getenv("RATE_SERVICE_BASE_URL") + getRateEndpoint
+	rateUrl := viper.GetString("RATE_SERVICE_BASE_URL") + getRateEndpoint
 	res, err := http.Get(rateUrl)
 	if err != nil {
 		return nil, nil, nil, err

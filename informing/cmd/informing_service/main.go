@@ -2,6 +2,7 @@ package main
 
 import (
 	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/spf13/viper"
 	"informing-service/internal/config"
 	"informing-service/internal/crons"
 	"informing-service/internal/database"
@@ -13,7 +14,6 @@ import (
 	"informing-service/internal/server/controllers"
 	"informing-service/internal/services"
 	"log"
-	"os"
 )
 
 const (
@@ -22,7 +22,7 @@ const (
 )
 
 func main() {
-	err := config.LoadConfig()
+	err := config.LoadConfig(".env")
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
@@ -36,7 +36,7 @@ func main() {
 	subscriptionRepository := database.NewSubscriptionRepository(db)
 	rateRepository := database.NewRateRepository(db)
 
-	conn, err := amqp.Dial(os.Getenv("RABBIT_URL"))
+	conn, err := amqp.Dial(viper.Get("RABBIT_URL").(string))
 	if err != nil {
 		log.Fatalf("Failed to connetct to rabbitmq: %v", err.Error())
 	}

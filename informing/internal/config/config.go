@@ -2,13 +2,14 @@ package config
 
 import (
 	"fmt"
-	"github.com/joho/godotenv"
+	"github.com/spf13/viper"
 )
 
-func LoadConfig(paths ...string) error {
-	err := godotenv.Load(paths...)
+func LoadConfig(path string) error {
+	viper.SetConfigFile(path)
+	err := viper.ReadInConfig()
 	if err != nil {
-		return fmt.Errorf("error loading .env file : %v", err)
+		return fmt.Errorf("error loading config file : %v", err)
 	}
 	return err
 }

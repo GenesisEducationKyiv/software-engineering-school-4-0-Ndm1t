@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"gateway/internal/server/controllers"
+	"github.com/spf13/viper"
 	"io"
 	"net/http"
-	"os"
 )
 
 const (
@@ -24,7 +24,7 @@ func NewSubscriptionClient() *SubscriptionClient {
 }
 
 func (c *SubscriptionClient) Subscribe(req controllers.SubscribeReq) (*int, *string, []byte, error) {
-	url := os.Getenv("SUBSCRIPTION_SERVICE_BASE_URL") + subscribeEndpoint
+	url := viper.GetString("SUBSCRIPTION_SERVICE_BASE_URL") + subscribeEndpoint
 	reqJSON, err := json.Marshal(req)
 	if err != nil {
 		return nil, nil, nil, err
@@ -45,7 +45,7 @@ func (c *SubscriptionClient) Subscribe(req controllers.SubscribeReq) (*int, *str
 }
 
 func (c *SubscriptionClient) Unsubscribe(req controllers.SubscribeReq) (*int, *string, []byte, error) {
-	url := os.Getenv("SUBSCRIPTION_SERVICE_BASE_URL") + unsubscribeEndpoint
+	url := viper.GetString("SUBSCRIPTION_SERVICE_BASE_URL") + unsubscribeEndpoint
 	reqJSON, err := json.Marshal(req)
 	if err != nil {
 		return nil, nil, nil, err
