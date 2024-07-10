@@ -18,8 +18,6 @@ const (
 type (
 	SubscriptionRepositoryInterface interface {
 		Create(email string) (*models.Subscription, error)
-		ListSubscribed() ([]models.Subscription, error)
-		Update(subscription models.Subscription) (*models.Subscription, error)
 		Delete(subscription models.Subscription) error
 	}
 

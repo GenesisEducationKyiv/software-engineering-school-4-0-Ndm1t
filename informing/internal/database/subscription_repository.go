@@ -32,18 +32,23 @@ func (r *SubscriptionRepository) Create(email string) (*models.Subscription, err
 	return &subscription, nil
 }
 
-func (r *SubscriptionRepository) ListSubscribed() ([]models.Subscription, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), DBTimeout)
+func (r *SubscriptionRepository) ListSubscribed(limit int, startEmail string) ([]models.Subscription, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
 	var subscriptions []models.Subscription
-	result := r.DB.WithContext(ctx).Find(&subscriptions, "status = ?", models.Subscribed)
-
-	if result.Error != nil {
-		return nil, fmt.Errorf("databese error: %v", result.Error.Error())
+	if startEmail == "" {
+		result := r.DB.WithContext(ctx).
+			Order("email").Limit(limit).
+			Find(&subscriptions, "status = ?", models.Subscribed)
+		return subscriptions, result.Error
 	}
 
-	return subscriptions, nil
+	result := r.DB.WithContext(ctx).Where("email > ?", startEmail).
+		Order("email").
+		Limit(limit).
+		Find(&subscriptions, "status = ?", models.Subscribed)
+	return subscriptions, result.Error
 }
 
 func (r *SubscriptionRepository) Update(subscription models.Subscription) (*models.Subscription, error) {
