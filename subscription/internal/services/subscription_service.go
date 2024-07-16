@@ -29,20 +29,25 @@ type (
 		Subscribe(email string) (*models.Email, error)
 		ListSubscribed() ([]string, error)
 		Unsubscribe(email string) error
+		UpdateSate(email string, state models.State) error
+		Delete(email string) error
 	}
 
 	SubscriptionService struct {
-		SubscriptionDao      ISubscriptionDao
-		SubscriptionProducer SubscriptionProducerInterface
+		SubscriptionDao          ISubscriptionDao
+		SubscriptionProducer     SubscriptionProducerInterface
+		SubscriptionSagaProducer SubscriptionProducerInterface
 	}
 )
 
 func NewSubscriptionService(
 	subscriptionRepository ISubscriptionDao,
-	subscriptionProducer SubscriptionProducerInterface) *SubscriptionService {
+	subscriptionProducer SubscriptionProducerInterface,
+	subscriptionSagaProducer SubscriptionProducerInterface) *SubscriptionService {
 	return &SubscriptionService{
-		SubscriptionDao:      subscriptionRepository,
-		SubscriptionProducer: subscriptionProducer,
+		SubscriptionDao:          subscriptionRepository,
+		SubscriptionProducer:     subscriptionProducer,
+		SubscriptionSagaProducer: subscriptionSagaProducer,
 	}
 }
 
@@ -71,7 +76,7 @@ func (s *SubscriptionService) Subscribe(email string) (*models.Email, error) {
 		}
 	}
 
-	err = s.SubscriptionProducer.Publish(subscriptionCreatedEvent, *subscription, context.Background())
+	err = s.SubscriptionSagaProducer.Publish(subscriptionCreatedEvent, *subscription, context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -121,5 +126,34 @@ func (s *SubscriptionService) Unsubscribe(email string) error {
 		return fmt.Errorf("failed to publish DleteSubscription event")
 	}
 
+	return nil
+}
+
+func (s *SubscriptionService) Delete(email string) error {
+	subscription, err := s.SubscriptionDao.Find(email)
+	if err != nil {
+		return err
+	}
+	err = s.SubscriptionDao.Delete(subscription)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *SubscriptionService) UpdateSate(email string, state models.State) error {
+	subscription, err := s.SubscriptionDao.Find(email)
+	if err != nil {
+		return err
+	}
+	subscription.State = state
+	_, err = s.SubscriptionDao.Update(*subscription)
+	if err != nil {
+		return err
+	}
+	err = s.SubscriptionProducer.Publish(subscriptionCreatedEvent, *subscription, context.Background())
+	if err != nil {
+		return err
+	}
 	return nil
 }
