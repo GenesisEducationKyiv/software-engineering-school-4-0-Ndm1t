@@ -16,6 +16,7 @@ const (
 type (
 	RateRepositoryInterface interface {
 		Create(rate models.Rate) (*models.Rate, error)
+		GetLatest() (*models.Rate, error)
 	}
 
 	RateConsumer struct {

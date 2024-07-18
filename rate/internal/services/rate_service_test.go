@@ -1,34 +1,29 @@
 package services
 
 import (
+	"context"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"rate-service/internal/app_errors"
+	"rate-service/internal/services/mocks"
 	"testing"
 )
 
-type MockRateAPIProvider struct {
-	mock.Mock
-}
-
-func (m *MockRateAPIProvider) FetchRate() (*float64, error) {
-	args := m.Called()
-	if args.Get(0) != nil {
-		rate := args.Get(0).(float64)
-		return &rate, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-func TestRateService_Get(t *testing.T) {
-	mockAPIProvider := new(MockRateAPIProvider)
+func TestRateService_Get_Success(t *testing.T) {
+	mockAPIProvider := new(mocks.MockRateAPIProvider)
+	mockRateProducer := new(mocks.MockRateProducer)
 
 	// Mock the FetchRate method
 	rate := 27.5
+
 	mockAPIProvider.On("FetchRate").Return(rate, nil)
+	mockRateProducer.On("Publish", "RateFetched", mock.Anything, context.Background()).
+		Return(nil)
 
 	// Inject the mock provider into the service
 	service := &RateService{
-		APIProvider: mockAPIProvider,
+		APIProvider:  mockAPIProvider,
+		rateProducer: mockRateProducer,
 	}
 
 	// Test the Get method
@@ -39,10 +34,11 @@ func TestRateService_Get(t *testing.T) {
 
 	// Assert that the mock was called
 	mockAPIProvider.AssertExpectations(t)
+	mockRateProducer.AssertExpectations(t)
 }
 
 func TestRateService_Get_FetchRateError(t *testing.T) {
-	mockAPIProvider := new(MockRateAPIProvider)
+	mockAPIProvider := new(mocks.MockRateAPIProvider)
 
 	// Mock the FetchRate method to return an error
 	mockAPIProvider.On("FetchRate").Return(nil, apperrors.ErrRateFetch)

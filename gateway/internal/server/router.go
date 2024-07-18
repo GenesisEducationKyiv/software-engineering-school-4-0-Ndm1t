@@ -3,8 +3,8 @@ package server
 import (
 	"gateway/internal/server/controllers"
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 	"log"
-	"os"
 )
 
 type (
@@ -31,12 +31,13 @@ func (s *Server) routes() {
 	{
 		api.POST("/subscribe", s.subscriptionController.Subscribe)
 		api.GET("/rate", s.rateController.Get)
+		api.POST("/unsubscribe", s.subscriptionController.Unsubscribe)
 	}
 }
 
 func (s *Server) Run() {
 
-	if err := s.router.Run(os.Getenv("PORT")); err != nil {
+	if err := s.router.Run(viper.GetString("PORT")); err != nil {
 		log.Fatalf("Failed to run server %v", err.Error())
 	}
 }

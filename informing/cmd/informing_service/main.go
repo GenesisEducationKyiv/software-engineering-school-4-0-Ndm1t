@@ -2,17 +2,18 @@ package main
 
 import (
 	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/spf13/viper"
 	"informing-service/internal/config"
 	"informing-service/internal/crons"
 	"informing-service/internal/database"
 	"informing-service/internal/mailers"
 	"informing-service/internal/models"
 	"informing-service/internal/rabbitmq/consumers"
+	"informing-service/internal/rabbitmq/producers"
 	"informing-service/internal/server"
 	"informing-service/internal/server/controllers"
 	"informing-service/internal/services"
 	"log"
-	"os"
 )
 
 const (
@@ -21,7 +22,7 @@ const (
 )
 
 func main() {
-	err := config.LoadConfig()
+	err := config.LoadConfig(".env")
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
@@ -35,7 +36,7 @@ func main() {
 	subscriptionRepository := database.NewSubscriptionRepository(db)
 	rateRepository := database.NewRateRepository(db)
 
-	conn, err := amqp.Dial(os.Getenv("RABBIT_URL"))
+	conn, err := amqp.Dial(viper.Get("RABBIT_URL").(string))
 	if err != nil {
 		log.Fatalf("Failed to connetct to rabbitmq: %v", err.Error())
 	}
@@ -46,7 +47,19 @@ func main() {
 		}
 	}(conn)
 
-	subscriptionConsumer, err := consumers.NewSubscriptionConsumer(conn, emailsTopic, subscriptionRepository)
+	smtpSender := mailers.NewSMTPEmailSender()
+
+	subscriptionProducer, err := producers.NewEmailProducer(conn, emailsTopic)
+	if err != nil {
+		log.Fatalf("failed to initialize subscription producer: %v", err)
+	}
+
+	subscriptionConsumer, err := consumers.NewSubscriptionConsumer(
+		conn,
+		emailsTopic,
+		subscriptionRepository,
+		rateRepository,
+		smtpSender)
 	if err != nil {
 		log.Fatalf("Failed to initialize message producer: %v", err.Error())
 	}
@@ -61,9 +74,7 @@ func main() {
 	subscriptionConsumer.Listen()
 	rateConsumer.Listen()
 
-	smtpSender := mailers.NewSMTPEmailSender()
-
-	informingService := services.NewInformingService(subscriptionRepository, rateRepository, smtpSender)
+	informingService := services.NewInformingService(subscriptionRepository, subscriptionProducer)
 
 	cronScheduler := crons.NewCronScheduler(informingService)
 

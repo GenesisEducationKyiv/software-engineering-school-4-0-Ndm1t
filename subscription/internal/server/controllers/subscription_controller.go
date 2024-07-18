@@ -16,6 +16,7 @@ type SubscriptionController struct {
 type ISubscriptionController interface {
 	Subscribe(ctx *gin.Context)
 	ListSubscribed(ctx *gin.Context)
+	Unsubscribe(ctx *gin.Context)
 }
 
 func NewSubscriptionController(
@@ -43,7 +44,9 @@ func (c *SubscriptionController) Subscribe(ctx *gin.Context) {
 			return
 		}
 
-		ctx.JSON(apperrors.ErrInternalServer.StatusCode, apperrors.ErrInternalServer.JSONResponse)
+		ctx.JSON(apperrors.ErrInternalServer.StatusCode, gin.H{
+			"error": err.Error(),
+		})
 		return
 	}
 	ctx.JSON(http.StatusOK, &subscription)
@@ -61,4 +64,28 @@ func (c *SubscriptionController) ListSubscribed(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"subscriptions": subscriptions,
 	})
+}
+
+func (c *SubscriptionController) Unsubscribe(ctx *gin.Context) {
+	var subscriptionData models.Email
+	if err := ctx.ShouldBindJSON(&subscriptionData); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": "Couldn't bind request",
+		})
+		return
+	}
+
+	err := c.SubscriptionService.Unsubscribe(subscriptionData.Email)
+
+	if err != nil {
+		var httpErr *apperrors.HttpError
+		if errors.As(err, &httpErr) {
+			ctx.JSON(httpErr.StatusCode, httpErr.JSONResponse)
+			return
+		}
+
+		ctx.JSON(apperrors.ErrInternalServer.StatusCode, apperrors.ErrInternalServer.JSONResponse)
+		return
+	}
+	ctx.Status(http.StatusOK)
 }

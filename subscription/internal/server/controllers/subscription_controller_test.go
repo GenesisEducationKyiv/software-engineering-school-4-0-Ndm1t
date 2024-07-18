@@ -3,39 +3,16 @@ package controllers
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"net/http"
 	"net/http/httptest"
 	"subscription-service/internal/app_errors"
 	"subscription-service/internal/models"
+	"subscription-service/internal/server/controllers/mocks"
 	"subscription-service/internal/services"
 	"testing"
 )
-
-type MockSubscriptionService struct {
-	mock.Mock
-}
-
-func (m *MockSubscriptionService) Subscribe(email string) (*models.Email, error) {
-	args := m.Called(email)
-	if args.Get(0) != nil {
-		email := args.Get(0).(models.Email)
-		return &email, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
-func (m *MockSubscriptionService) ListSubscribed() ([]string, error) {
-	args := m.Called()
-	if args.Get(0) != nil {
-		emails := args.Get(0).([]string)
-		return emails, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
 
 func setupSubscriptionTestServer(subscriptionService services.ISubscriptionService) *gin.Engine {
 	gin.SetMode(gin.TestMode)
@@ -49,7 +26,7 @@ func setupSubscriptionTestServer(subscriptionService services.ISubscriptionServi
 }
 
 func TestSubscriptionController_Subscribe_Success(t *testing.T) {
-	mockService := new(MockSubscriptionService)
+	mockService := new(mocks.MockSubscriptionService)
 	email := "test@example.com"
 	subscription := models.Email{Email: email, Status: models.Subscribed}
 	mockService.On("Subscribe", email).Return(subscription, nil)
@@ -68,7 +45,7 @@ func TestSubscriptionController_Subscribe_Success(t *testing.T) {
 }
 
 func TestSubscriptionController_Subscribe_BadRequest(t *testing.T) {
-	mockService := new(MockSubscriptionService)
+	mockService := new(mocks.MockSubscriptionService)
 
 	router := setupSubscriptionTestServer(mockService)
 
@@ -82,7 +59,7 @@ func TestSubscriptionController_Subscribe_BadRequest(t *testing.T) {
 }
 
 func TestSubscriptionController_Subscribe_ServiceError(t *testing.T) {
-	mockService := new(MockSubscriptionService)
+	mockService := new(mocks.MockSubscriptionService)
 	email := "test@example.com"
 	mockService.On("Subscribe", email).Return(nil, apperrors.ErrDatabase)
 
@@ -100,9 +77,9 @@ func TestSubscriptionController_Subscribe_ServiceError(t *testing.T) {
 }
 
 func TestSubscriptionController_Subscribe_InternalServerError(t *testing.T) {
-	mockService := new(MockSubscriptionService)
+	mockService := new(mocks.MockSubscriptionService)
 	email := "test@example.com"
-	mockService.On("Subscribe", email).Return(nil, errors.New("unexpected error"))
+	mockService.On("Subscribe", email).Return(nil, apperrors.ErrInternalServer)
 
 	router := setupSubscriptionTestServer(mockService)
 

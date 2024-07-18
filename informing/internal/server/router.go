@@ -2,10 +2,10 @@ package server
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 	"informing-service/internal/crons"
 	"informing-service/internal/server/controllers"
 	"log"
-	"os"
 )
 
 type Server struct {
@@ -36,7 +36,7 @@ func (s *Server) routes() {
 
 func (s *Server) Run() {
 
-	if err := s.router.Run(os.Getenv("PORT")); err != nil {
+	if err := s.router.Run(viper.GetString("PORT")); err != nil {
 		log.Fatalf("Failed to run server %v", err.Error())
 	}
 }

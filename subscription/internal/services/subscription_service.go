@@ -2,11 +2,15 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"subscription-service/internal/app_errors"
 	"subscription-service/internal/models"
 )
 
-const subscriptionCreatedEvent = "SubscriptionCreated"
+const (
+	subscriptionCreatedEvent = "SubscriptionCreated"
+	subscriptionDeletedEvent = "SubscriptionDeleted"
+)
 
 type (
 	ISubscriptionDao interface {
@@ -14,6 +18,7 @@ type (
 		Create(email string) (*models.Email, error)
 		ListSubscribed() ([]models.Email, error)
 		Update(subscription models.Email) (*models.Email, error)
+		Delete(subscription *models.Email) error
 	}
 
 	SubscriptionProducerInterface interface {
@@ -23,6 +28,7 @@ type (
 	ISubscriptionService interface {
 		Subscribe(email string) (*models.Email, error)
 		ListSubscribed() ([]string, error)
+		Unsubscribe(email string) error
 	}
 
 	SubscriptionService struct {
@@ -42,7 +48,6 @@ func NewSubscriptionService(
 
 func (s *SubscriptionService) Subscribe(email string) (*models.Email, error) {
 	subscription, err := s.SubscriptionDao.Find(email)
-
 	if err != nil {
 		return nil, apperrors.ErrDatabase
 	}
@@ -88,4 +93,33 @@ func (s *SubscriptionService) ListSubscribed() ([]string, error) {
 
 	return subscribedEmails, nil
 
+}
+
+func (s *SubscriptionService) Unsubscribe(email string) error {
+	subscription, err := s.SubscriptionDao.Find(email)
+	if err != nil {
+		return apperrors.ErrDatabase
+	}
+	if *subscription == (models.Email{}) {
+		return fmt.Errorf("subscription does not exist")
+	}
+
+	if *subscription != (models.Email{}) && subscription.Status == models.Unsubscribed {
+		return apperrors.ErrAlreadyUnsubscribed
+	}
+
+	if subscription.Status == models.Subscribed {
+		subscription.Status = models.Unsubscribed
+		_, err = s.SubscriptionDao.Update(*subscription)
+		if err != nil {
+			return apperrors.ErrDatabase
+		}
+	}
+
+	err = s.SubscriptionProducer.Publish(subscriptionDeletedEvent, *subscription, context.Background())
+	if err != nil {
+		return fmt.Errorf("failed to publish DleteSubscription event")
+	}
+
+	return nil
 }

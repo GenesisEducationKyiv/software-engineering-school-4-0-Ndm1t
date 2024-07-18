@@ -6,6 +6,8 @@ services:
       context: ./informing
       dockerfile: Dockerfile
     container_name: informing-service
+    ports:
+      - 8080:8080
     depends_on:
       - rabbitmq
       - rate_service

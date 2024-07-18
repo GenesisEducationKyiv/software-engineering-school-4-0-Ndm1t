@@ -1,24 +1,24 @@
 package services
 
 import (
+	"context"
 	"informing-service/internal/models"
 	"log"
+	"sync"
 )
 
-type (
-	IEmailSender interface {
-		SendInforming(subscriptions []string, rate float64)
-	}
+const sendEmailEvent = "SendEmail"
 
+type (
 	SubscriptionRepositoryInterface interface {
 		Create(email string) (*models.Subscription, error)
-		ListSubscribed() ([]models.Subscription, error)
+		ListSubscribed(limit int, email string) ([]models.Subscription, error)
 		Update(subscription models.Subscription) (*models.Subscription, error)
+		Delete(subscription models.Subscription) error
 	}
 
-	RateRepositoryInterface interface {
-		Create(rate models.Rate) (*models.Rate, error)
-		GetLatest() (*models.Rate, error)
+	SubscriptionProducerInterface interface {
+		Publish(eventType string, subscription models.Subscription, ctx context.Context) error
 	}
 
 	InformingServiceInterface interface {
@@ -26,42 +26,57 @@ type (
 	}
 
 	InformingService struct {
-		EmailSender            IEmailSender
 		subscriptionRepository SubscriptionRepositoryInterface
-		rateRepository         RateRepositoryInterface
+		subscriptionProducer   SubscriptionProducerInterface
 	}
 )
 
 func NewInformingService(subscriptionRepository SubscriptionRepositoryInterface,
-	rateRepository RateRepositoryInterface,
-	sender IEmailSender) *InformingService {
+	subscriptionProducer SubscriptionProducerInterface) *InformingService {
 	return &InformingService{
-		EmailSender:            sender,
-		rateRepository:         rateRepository,
 		subscriptionRepository: subscriptionRepository,
+		subscriptionProducer:   subscriptionProducer,
 	}
 }
 
 func (s *InformingService) SendEmails() {
-	rate, err := s.rateRepository.GetLatest()
-	log.Printf("Rate fetched: %v", rate)
-	if err != nil {
-		return
+	var (
+		left       = true
+		startEmail = ""
+		limit      = 5
+	)
+
+	for left {
+		subscriptions, err := s.subscriptionRepository.ListSubscribed(limit, startEmail)
+		log.Printf("Subscriptions fetched: %v", subscriptions)
+		if err != nil {
+			log.Printf("failed to list subscribed emails: %v", err.Error())
+			return
+		}
+
+		if len(subscriptions) == 0 {
+			left = false
+		}
+
+		if len(subscriptions) > 0 {
+			startEmail = subscriptions[len(subscriptions)-1].Email
+		}
+
+		wg := sync.WaitGroup{}
+		for _, v := range subscriptions {
+			wg.Add(1)
+			subscription := v
+			go func(subscription models.Subscription) {
+				log.Printf("Spawned goroutine")
+				err = s.subscriptionProducer.Publish(sendEmailEvent, subscription, context.Background())
+				if err != nil {
+					log.Printf("failed to publish SendEmail command: %v", err)
+				}
+				wg.Done()
+			}(subscription)
+		}
+		wg.Wait()
 	}
 
-	subscriptions, err := s.subscriptionRepository.ListSubscribed()
-	log.Printf("Subscriptions fetched: %v", subscriptions)
-	if err != nil {
-		log.Printf("failed to list subscribed emails: %v", err.Error())
-		return
-	}
-
-	var subscribedEmails []string
-
-	for _, v := range subscriptions {
-		subscribedEmails = append(subscribedEmails, v.Email)
-	}
-
-	s.EmailSender.SendInforming(subscribedEmails, rate.Rate)
 	return
 }
