@@ -78,7 +78,7 @@ func (c *CustomerConsumer) Listen(forever chan struct{}) {
 			err = json.Unmarshal(d.Body, &message)
 			if err != nil {
 				log.Printf("failed to unmarshal message: %v", err)
-				d.Nack(false, true)
+				d.Nack(false, false)
 				continue
 			}
 			switch message.EventType {
