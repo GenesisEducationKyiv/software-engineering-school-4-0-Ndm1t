@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"log"
+	"go.uber.org/zap"
 )
 
 const (
@@ -19,12 +19,13 @@ type (
 		Queue           amqp.Queue
 		topic           string
 		customerService services.CustomerServiceInterface
+		logger          *zap.SugaredLogger
 	}
 )
 
 func NewCustomerConsumer(conn *amqp.Connection,
 	topic string,
-	customerService services.CustomerServiceInterface) (*CustomerConsumer, error) {
+	customerService services.CustomerServiceInterface, logger *zap.SugaredLogger) (*CustomerConsumer, error) {
 	ch, err := conn.Channel()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create rabbit channel: %v", err)
@@ -48,6 +49,7 @@ func NewCustomerConsumer(conn *amqp.Connection,
 		Queue:           q,
 		topic:           topic,
 		customerService: customerService,
+		logger:          logger,
 	}, nil
 }
 
@@ -62,14 +64,14 @@ func (c *CustomerConsumer) Listen(forever chan struct{}) {
 		nil,
 	)
 	if err != nil {
-		log.Printf("failed to consume subscriptions: %v", err.Error())
+		c.logger.Warnf("failed to consume subscriptions: %v", err.Error())
 		return
 	}
 
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				log.Printf("recovered from panic: %v", r)
+				c.logger.Warnf("recovered from panic: %v", r)
 			}
 		}()
 
@@ -77,7 +79,7 @@ func (c *CustomerConsumer) Listen(forever chan struct{}) {
 			var message rabbitmq.CustomerMessage
 			err = json.Unmarshal(d.Body, &message)
 			if err != nil {
-				log.Printf("failed to unmarshal message: %v", err)
+				c.logger.Warnf("failed to unmarshal message: %v", err)
 				d.Nack(false, false)
 				continue
 			}
@@ -85,7 +87,7 @@ func (c *CustomerConsumer) Listen(forever chan struct{}) {
 			case createCustomer:
 				c.handleCreateCustomer(d, message)
 			default:
-				log.Printf("unhandled event type: %s", message.EventType)
+				c.logger.Warnf("unhandled event type: %s", message.EventType)
 				d.Nack(false, false)
 			}
 		}

@@ -2,6 +2,7 @@ package clients
 
 import (
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 	"io"
 	"net/http"
 )
@@ -9,11 +10,15 @@ import (
 const getRateEndpoint = "/rate"
 
 type (
-	RateClient struct{}
+	RateClient struct {
+		logger *zap.SugaredLogger
+	}
 )
 
-func NewRateClient() *RateClient {
-	return &RateClient{}
+func NewRateClient(logger *zap.SugaredLogger) *RateClient {
+	return &RateClient{
+		logger: logger,
+	}
 }
 
 func (c *RateClient) FetchRate() (*int, *string, []byte, error) {

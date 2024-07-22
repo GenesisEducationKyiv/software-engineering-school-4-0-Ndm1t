@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"go.uber.org/zap"
 	"subscription-service/internal/app_errors"
 	"subscription-service/internal/models"
 )
@@ -37,27 +38,32 @@ type (
 		SubscriptionDao          ISubscriptionDao
 		SubscriptionProducer     SubscriptionProducerInterface
 		SubscriptionSagaProducer SubscriptionProducerInterface
+		logger                   *zap.SugaredLogger
 	}
 )
 
 func NewSubscriptionService(
 	subscriptionRepository ISubscriptionDao,
 	subscriptionProducer SubscriptionProducerInterface,
-	subscriptionSagaProducer SubscriptionProducerInterface) *SubscriptionService {
+	subscriptionSagaProducer SubscriptionProducerInterface,
+	logger *zap.SugaredLogger) *SubscriptionService {
 	return &SubscriptionService{
 		SubscriptionDao:          subscriptionRepository,
 		SubscriptionProducer:     subscriptionProducer,
 		SubscriptionSagaProducer: subscriptionSagaProducer,
+		logger:                   logger,
 	}
 }
 
 func (s *SubscriptionService) Subscribe(email string) (*models.Email, error) {
 	subscription, err := s.SubscriptionDao.Find(email)
 	if err != nil {
+		s.logger.Warnf("couldn't find subscription: %v", err.Error())
 		return nil, apperrors.ErrDatabase
 	}
 
 	if subscription != nil && subscription.Status == models.Subscribed {
+		s.logger.Infof("subscripiton already exists: %v", subscription.Email)
 		return nil, apperrors.ErrSubscriptionAlreadyExists
 	}
 
@@ -65,6 +71,7 @@ func (s *SubscriptionService) Subscribe(email string) (*models.Email, error) {
 		subscription.Status = models.Subscribed
 		subscription, err = s.SubscriptionDao.Update(*subscription)
 		if err != nil {
+			s.logger.Warnf("failed to update subscription status: %v", err.Error())
 			return nil, apperrors.ErrDatabase
 		}
 	}
@@ -72,12 +79,14 @@ func (s *SubscriptionService) Subscribe(email string) (*models.Email, error) {
 	if (models.Email{}) == *subscription {
 		subscription, err = s.SubscriptionDao.Create(email)
 		if err != nil {
+			s.logger.Warnf("failed to create subscription: %v", err.Error())
 			return nil, apperrors.ErrDatabase
 		}
 	}
 
 	err = s.SubscriptionSagaProducer.Publish(subscriptionCreatedEvent, *subscription, context.Background())
 	if err != nil {
+		s.logger.Warnf("failed to publish message: %v", err.Error())
 		return nil, err
 	}
 
@@ -87,6 +96,7 @@ func (s *SubscriptionService) Subscribe(email string) (*models.Email, error) {
 func (s *SubscriptionService) ListSubscribed() ([]string, error) {
 	subscriptions, err := s.SubscriptionDao.ListSubscribed()
 	if err != nil {
+		s.logger.Warnf("failed to list subscriptions: %v", err.Error())
 		return nil, apperrors.ErrDatabase
 	}
 
@@ -103,13 +113,17 @@ func (s *SubscriptionService) ListSubscribed() ([]string, error) {
 func (s *SubscriptionService) Unsubscribe(email string) error {
 	subscription, err := s.SubscriptionDao.Find(email)
 	if err != nil {
+		s.logger.Warnf("couldn't find subscription: %v", err.Error())
 		return apperrors.ErrDatabase
 	}
+
 	if *subscription == (models.Email{}) {
+		s.logger.Info("subscription does not exist")
 		return fmt.Errorf("subscription does not exist")
 	}
 
 	if *subscription != (models.Email{}) && subscription.Status == models.Unsubscribed {
+		s.logger.Infof("subscription already unsubscribed: %v", subscription.Email)
 		return apperrors.ErrAlreadyUnsubscribed
 	}
 
@@ -117,12 +131,14 @@ func (s *SubscriptionService) Unsubscribe(email string) error {
 		subscription.Status = models.Unsubscribed
 		_, err = s.SubscriptionDao.Update(*subscription)
 		if err != nil {
+			s.logger.Warnf("failed to update subscription: %v", err.Error())
 			return apperrors.ErrDatabase
 		}
 	}
 
 	err = s.SubscriptionProducer.Publish(subscriptionDeletedEvent, *subscription, context.Background())
 	if err != nil {
+		s.logger.Warn("failed to publish DleteSubscription event", subscription)
 		return fmt.Errorf("failed to publish DleteSubscription event")
 	}
 
@@ -132,10 +148,12 @@ func (s *SubscriptionService) Unsubscribe(email string) error {
 func (s *SubscriptionService) Delete(email string) error {
 	subscription, err := s.SubscriptionDao.Find(email)
 	if err != nil {
+		s.logger.Warnf("couldn't find subscription: %v", err.Error())
 		return err
 	}
 	err = s.SubscriptionDao.Delete(subscription)
 	if err != nil {
+		s.logger.Warnf("failed to delete subscription: %v", err.Error())
 		return err
 	}
 	return nil
@@ -144,15 +162,18 @@ func (s *SubscriptionService) Delete(email string) error {
 func (s *SubscriptionService) UpdateSate(email string, state models.State) error {
 	subscription, err := s.SubscriptionDao.Find(email)
 	if err != nil {
+		s.logger.Warnf("couldn't find subscription: %v", err.Error())
 		return err
 	}
 	subscription.State = state
 	_, err = s.SubscriptionDao.Update(*subscription)
 	if err != nil {
+		s.logger.Warnf("failed to update subscription: %v", err.Error())
 		return err
 	}
 	err = s.SubscriptionProducer.Publish(subscriptionCreatedEvent, *subscription, context.Background())
 	if err != nil {
+		s.logger.Warnf("failed to publish message: %v", err.Error())
 		return err
 	}
 	return nil

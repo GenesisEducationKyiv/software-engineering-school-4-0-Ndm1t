@@ -7,18 +7,20 @@ import (
 	"encoding/json"
 	"fmt"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"go.uber.org/zap"
 	"time"
 )
 
 type (
 	CustomerProducer struct {
-		Chan  *amqp.Channel
-		Queue amqp.Queue
-		topic string
+		Chan   *amqp.Channel
+		Queue  amqp.Queue
+		topic  string
+		logger *zap.SugaredLogger
 	}
 )
 
-func NewCustomerProducer(conn *amqp.Connection, topic string) (*CustomerProducer, error) {
+func NewCustomerProducer(conn *amqp.Connection, topic string, logger *zap.SugaredLogger) (*CustomerProducer, error) {
 	ch, err := conn.Channel()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create rabbit chanel: %v", err)
@@ -38,9 +40,10 @@ func NewCustomerProducer(conn *amqp.Connection, topic string) (*CustomerProducer
 	}
 
 	return &CustomerProducer{
-		Chan:  ch,
-		Queue: q,
-		topic: topic,
+		Chan:   ch,
+		Queue:  q,
+		topic:  topic,
+		logger: logger,
 	}, nil
 }
 
@@ -50,6 +53,7 @@ func (p *CustomerProducer) Publish(eventType string, customer models.Customer, c
 	body, err := json.Marshal(customerMessage)
 
 	if err != nil {
+		p.logger.Warnf("failed to create message body: %v", err.Error())
 		return fmt.Errorf("failed to create message body: %v", err.Error())
 	}
 
@@ -67,6 +71,7 @@ func (p *CustomerProducer) Publish(eventType string, customer models.Customer, c
 			Body:        body,
 		})
 	if err != nil {
+		p.logger.Warnf("failed to publish message: %v", err.Error())
 		return fmt.Errorf("failed to publish message: %v", err.Error())
 	}
 

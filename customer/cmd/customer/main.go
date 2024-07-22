@@ -9,6 +9,7 @@ import (
 	"customer-service/internal/services"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 	"log"
 )
 
@@ -18,35 +19,37 @@ func main() {
 		log.Fatalf(err.Error())
 	}
 
+	logger := zap.Must(zap.NewProduction()).Sugar()
+
 	db := database.ConnectDatabase()
 
 	if err = db.AutoMigrate(&models.Customer{}); err != nil {
-		log.Fatalf("Coulnd't migrate database: %v", err.Error())
+		logger.Errorf("couldn't migrate database: %v", err.Error())
 	}
 
 	customerRepository := database.NewCustomerRepository(db)
 
 	conn, err := amqp.Dial(viper.GetString("RABBIT_URL"))
 	if err != nil {
-		log.Fatalf("Failed to connetct to rabbitmq: %v", err.Error())
+		logger.Errorf("couldn't migrate database: %v", err.Error())
 	}
 	defer func(conn *amqp.Connection) {
 		err = conn.Close()
 		if err != nil {
-			log.Fatalf("Failed to close rabbit connection: %v", err.Error())
+			logger.Errorf("Failed to close rabbit connection: %v", err.Error())
 		}
 	}(conn)
 
-	customerProducer, err := producers.NewCustomerProducer(conn, "sagaCustomersReply")
+	customerProducer, err := producers.NewCustomerProducer(conn, "sagaCustomersReply", logger)
 	if err != nil {
-		log.Fatalf("Failed to initialize message producer: %v", err.Error())
+		logger.Errorf("Failed to initialize message producer: %v", err.Error())
 	}
 
 	customerService := services.NewCustomerService(customerProducer, customerRepository)
 
-	customerConumer, err := consumers.NewCustomerConsumer(conn, "sagaCustomers", customerService)
+	customerConumer, err := consumers.NewCustomerConsumer(conn, "sagaCustomers", customerService, logger)
 	if err != nil {
-		log.Fatalf("Failed to initialize message producer: %v", err.Error())
+		logger.Errorf("Failed to initialize message producer: %v", err.Error())
 	}
 	defer customerConumer.Chan.Close()
 

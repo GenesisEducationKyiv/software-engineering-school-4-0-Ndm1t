@@ -5,6 +5,7 @@ import (
 	"gateway/internal/config"
 	"gateway/internal/server"
 	"gateway/internal/server/controllers"
+	"go.uber.org/zap"
 	"log"
 )
 
@@ -14,8 +15,10 @@ func main() {
 		log.Fatalf(err.Error())
 	}
 
-	rateClient := clients.NewRateClient()
-	subscriptionClient := clients.NewSubscriptionClient()
+	logger := zap.Must(zap.NewProduction()).Sugar()
+
+	rateClient := clients.NewRateClient(logger)
+	subscriptionClient := clients.NewSubscriptionClient(logger)
 
 	rateController := controllers.NewRateController(rateClient)
 	subscriptionController := controllers.NewSubscriptionController(subscriptionClient)

@@ -3,6 +3,7 @@ package main
 import (
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 	"log"
 	"orchestrator/internal/config"
 	"orchestrator/internal/rabbitmq/consumers"
@@ -17,28 +18,30 @@ func main() {
 		log.Fatalf(err.Error())
 	}
 
+	logger := zap.Must(zap.NewProduction()).Sugar()
+
 	conn, err := amqp.Dial(viper.GetString("RABBIT_URL"))
 	if err != nil {
-		log.Fatalf("Failed to connetct to rabbitmq: %v", err.Error())
+		logger.Errorf("Failed to connetct to rabbitmq: %v", err.Error())
 	}
 	defer func(conn *amqp.Connection) {
 		err = conn.Close()
 		if err != nil {
-			log.Fatalf("Failed to close rabbit connection: %v", err.Error())
+			logger.Errorf("Failed to close rabbit connection: %v", err.Error())
 		}
 	}(conn)
 
 	customerProducer, err := producers.NewCustomerProducer(conn, "sagaCustomers")
 	if err != nil {
-		log.Fatal("failed to initialize customer producer")
+		logger.Errorf("failed to initialize customer producer")
 	}
 	subscriptionProducer, err := producers.NewSubscriptionProducer(conn, "sagaEmailsReply")
 	if err != nil {
-		log.Fatal("failed to initialize customer producer")
+		logger.Errorf("failed to initialize customer producer")
 	}
-	customerConsumer, err := consumers.NewCustomerConsumer(conn, "sagaCustomersReply", subscriptionProducer)
+	customerConsumer, err := consumers.NewCustomerConsumer(conn, "sagaCustomersReply", subscriptionProducer, logger)
 	defer customerConsumer.Chan.Close()
-	subscriptionConsumer, err := consumers.NewSubscriptionConsumer(conn, "sagaEmails", customerProducer)
+	subscriptionConsumer, err := consumers.NewSubscriptionConsumer(conn, "sagaEmails", customerProducer, logger)
 	defer subscriptionConsumer.Chan.Close()
 
 	var forever chan struct{}

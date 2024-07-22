@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"log"
+	"go.uber.org/zap"
 	"orchestrator/internal/models"
 	"orchestrator/internal/rabbitmq"
 )
@@ -25,12 +25,14 @@ type (
 		Queue            amqp.Queue
 		topic            string
 		customerProducer CustomerProducerInterface
+		logger           *zap.SugaredLogger
 	}
 )
 
 func NewSubscriptionConsumer(conn *amqp.Connection,
 	topic string,
-	customerProducer CustomerProducerInterface) (*SubscriptionConsumer, error) {
+	customerProducer CustomerProducerInterface,
+	logger *zap.SugaredLogger) (*SubscriptionConsumer, error) {
 	ch, err := conn.Channel()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create rabbit channel: %v", err)
@@ -54,6 +56,7 @@ func NewSubscriptionConsumer(conn *amqp.Connection,
 		Queue:            q,
 		topic:            topic,
 		customerProducer: customerProducer,
+		logger:           logger,
 	}, nil
 }
 
@@ -68,14 +71,14 @@ func (c *SubscriptionConsumer) Listen(forever chan struct{}) {
 		nil,
 	)
 	if err != nil {
-		log.Printf("failed to consume subscriptions: %v", err.Error())
+		c.logger.Warnf("failed to consume subscriptions: %v", err.Error())
 		return
 	}
 
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				log.Printf("recovered from panic: %v", r)
+				c.logger.Warnf("recovered from panic: %v", r)
 			}
 		}()
 
@@ -83,15 +86,15 @@ func (c *SubscriptionConsumer) Listen(forever chan struct{}) {
 			var message rabbitmq.SubscriptionMessage
 			err = json.Unmarshal(d.Body, &message)
 			if err != nil {
-				log.Printf("failed to unmarshal message: %v", err)
-				d.Nack(false, true)
+				c.logger.Warnf("failed to unmarshal message: %v", err)
+				d.Nack(false, false)
 				continue
 			}
 			switch message.EventType {
 			case subscriptionCreated:
 				c.handleCreated(d, message)
 			default:
-				log.Printf("unhandled event type: %s", message.EventType)
+				c.logger.Warnf("unhandled event type: %s", message.EventType)
 				d.Nack(false, false)
 			}
 		}
@@ -105,7 +108,7 @@ func (c *SubscriptionConsumer) handleCreated(delivery amqp.Delivery, message rab
 		Email: message.Data.Email,
 	}, context.Background())
 	if err != nil {
-		log.Printf("failed to create customer message: %v", err)
+		c.logger.Warnf("failed to create customer message: %v", err)
 		delivery.Nack(false, true)
 		return
 	}

@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"go.uber.org/zap"
 	"informing-service/internal/models"
 	"informing-service/internal/rabbitmq"
-	"log"
 )
 
 const (
@@ -24,10 +24,11 @@ type (
 		Queue          amqp.Queue
 		topic          string
 		rateRepository RateRepositoryInterface
+		logger         *zap.SugaredLogger
 	}
 )
 
-func NewRateConsumer(conn *amqp.Connection, topic string, rateRepository RateRepositoryInterface) (*RateConsumer, error) {
+func NewRateConsumer(conn *amqp.Connection, topic string, rateRepository RateRepositoryInterface, logger *zap.SugaredLogger) (*RateConsumer, error) {
 	ch, err := conn.Channel()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create rabbit channel: %v", err)
@@ -51,6 +52,7 @@ func NewRateConsumer(conn *amqp.Connection, topic string, rateRepository RateRep
 		Queue:          q,
 		topic:          topic,
 		rateRepository: rateRepository,
+		logger:         logger,
 	}, nil
 }
 
@@ -65,14 +67,14 @@ func (c *RateConsumer) Listen() {
 		nil,
 	)
 	if err != nil {
-		log.Printf("failed to consume subscriptions: %v", err.Error())
+		c.logger.Warnf("failed to consume subscriptions: %v", err.Error())
 		return
 	}
 
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				log.Printf("recovered from panic: %v", r)
+				c.logger.Warnf("recovered from panic: %v", r)
 			}
 		}()
 
@@ -80,8 +82,8 @@ func (c *RateConsumer) Listen() {
 			var message rabbitmq.RateMessage
 			err = json.Unmarshal(d.Body, &message)
 			if err != nil {
-				log.Printf("failed to unmarshal message: %v", err)
-				d.Nack(false, true)
+				c.logger.Warnf("failed to unmarshal message: %v", err)
+				d.Nack(false, false)
 				continue
 			}
 
@@ -89,13 +91,13 @@ func (c *RateConsumer) Listen() {
 			case rateFetched:
 				_, err = c.rateRepository.Create(message.Data)
 				if err != nil {
-					log.Printf("failed to create rate row: %v", err)
+					c.logger.Warnf("failed to create rate row: %v", err)
 					d.Nack(false, true)
 				} else {
 					d.Ack(false)
 				}
 			default:
-				log.Printf("unhandled event type: %s", message.EventType)
+				c.logger.Warnf("unhandled event type: %s", message.EventType)
 				d.Nack(false, false)
 			}
 		}

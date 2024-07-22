@@ -2,8 +2,8 @@ package services
 
 import (
 	"context"
+	"go.uber.org/zap"
 	"informing-service/internal/models"
-	"log"
 	"sync"
 )
 
@@ -28,14 +28,17 @@ type (
 	InformingService struct {
 		subscriptionRepository SubscriptionRepositoryInterface
 		subscriptionProducer   SubscriptionProducerInterface
+		logger                 *zap.SugaredLogger
 	}
 )
 
 func NewInformingService(subscriptionRepository SubscriptionRepositoryInterface,
-	subscriptionProducer SubscriptionProducerInterface) *InformingService {
+	subscriptionProducer SubscriptionProducerInterface,
+	logger *zap.SugaredLogger) *InformingService {
 	return &InformingService{
 		subscriptionRepository: subscriptionRepository,
 		subscriptionProducer:   subscriptionProducer,
+		logger:                 logger,
 	}
 }
 
@@ -48,9 +51,9 @@ func (s *InformingService) SendEmails() {
 
 	for left {
 		subscriptions, err := s.subscriptionRepository.ListSubscribed(limit, startEmail)
-		log.Printf("Subscriptions fetched: %v", subscriptions)
+		s.logger.Infof("Subscriptions fetched: %v", subscriptions)
 		if err != nil {
-			log.Printf("failed to list subscribed emails: %v", err.Error())
+			s.logger.Warnf("failed to list subscribed emails: %v", err.Error())
 			return
 		}
 
@@ -67,10 +70,10 @@ func (s *InformingService) SendEmails() {
 			wg.Add(1)
 			subscription := v
 			go func(subscription models.Subscription) {
-				log.Printf("Spawned goroutine")
+				s.logger.Infof("Spawned goroutine")
 				err = s.subscriptionProducer.Publish(sendEmailEvent, subscription, context.Background())
 				if err != nil {
-					log.Printf("failed to publish SendEmail command: %v", err)
+					s.logger.Warnf("failed to publish SendEmail command: %v", err)
 				}
 				wg.Done()
 			}(subscription)
