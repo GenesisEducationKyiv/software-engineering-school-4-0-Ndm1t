@@ -2,11 +2,17 @@ package services
 
 import (
 	"context"
+	"fmt"
+	"github.com/VictoriaMetrics/metrics"
 	"rate-service/internal/models"
 	"time"
 )
 
-const rateFetched = "RateFetched"
+const (
+	rateFetched               = "RateFetched"
+	rateMessagePublishSuccess = "rate_publish_success"
+	rateMessagePublishFail    = "rate_publish_fail"
+)
 
 type (
 	IRateAPIProvider interface {
@@ -47,8 +53,10 @@ func (r *RateService) Get() (*float64, error) {
 
 	err = r.rateProducer.Publish(rateFetched, rateData, context.Background())
 	if err != nil {
+		metrics.GetOrCreateCounter(fmt.Sprintf(`%v{type=%q}`, rateMessagePublishFail, rateFetched)).Inc()
 		return nil, err
 	}
+	metrics.GetOrCreateCounter(fmt.Sprintf(`%v{type=%q}`, rateMessagePublishSuccess, rateFetched)).Inc()
 
 	return rate, nil
 }

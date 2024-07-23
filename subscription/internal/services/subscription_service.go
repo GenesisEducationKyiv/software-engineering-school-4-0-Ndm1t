@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"github.com/VictoriaMetrics/metrics"
 	"go.uber.org/zap"
 	"subscription-service/internal/app_errors"
 	"subscription-service/internal/models"
@@ -11,6 +12,8 @@ import (
 const (
 	subscriptionCreatedEvent = "SubscriptionCreated"
 	subscriptionDeletedEvent = "SubscriptionDeleted"
+	publishedSuccessfully    = "published_successfully"
+	publishedFail            = "published_fail"
 )
 
 type (
@@ -87,8 +90,10 @@ func (s *SubscriptionService) Subscribe(email string) (*models.Email, error) {
 	err = s.SubscriptionSagaProducer.Publish(subscriptionCreatedEvent, *subscription, context.Background())
 	if err != nil {
 		s.logger.Warnf("failed to publish message: %v", err.Error())
+		metrics.GetOrCreateCounter(fmt.Sprintf(`%v{email=%q}`, publishedFail, subscriptionCreatedEvent)).Inc()
 		return nil, err
 	}
+	metrics.GetOrCreateCounter(fmt.Sprintf(`%v{email=%q}`, publishedSuccessfully, subscriptionCreatedEvent)).Inc()
 
 	return subscription, err
 }
@@ -138,9 +143,11 @@ func (s *SubscriptionService) Unsubscribe(email string) error {
 
 	err = s.SubscriptionProducer.Publish(subscriptionDeletedEvent, *subscription, context.Background())
 	if err != nil {
+		metrics.GetOrCreateCounter(fmt.Sprintf(`%v{email=%q}`, publishedFail, subscriptionDeletedEvent)).Inc()
 		s.logger.Warn("failed to publish DleteSubscription event", subscription)
 		return fmt.Errorf("failed to publish DleteSubscription event")
 	}
+	metrics.GetOrCreateCounter(fmt.Sprintf(`%v{email=%q}`, publishedSuccessfully, subscriptionDeletedEvent)).Inc()
 
 	return nil
 }
@@ -173,8 +180,10 @@ func (s *SubscriptionService) UpdateSate(email string, state models.State) error
 	}
 	err = s.SubscriptionProducer.Publish(subscriptionCreatedEvent, *subscription, context.Background())
 	if err != nil {
+		metrics.GetOrCreateCounter(fmt.Sprintf(`%v{email=%q}`, publishedFail, subscriptionCreatedEvent)).Inc()
 		s.logger.Warnf("failed to publish message: %v", err.Error())
 		return err
 	}
+	metrics.GetOrCreateCounter(fmt.Sprintf(`%v{email=%q}`, publishedSuccessfully, subscriptionCreatedEvent)).Inc()
 	return nil
 }

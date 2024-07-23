@@ -5,12 +5,15 @@ import (
 	"customer-service/internal/services"
 	"encoding/json"
 	"fmt"
+	"github.com/VictoriaMetrics/metrics"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"go.uber.org/zap"
 )
 
 const (
-	createCustomer string = "CreateCustomer"
+	createCustomer        string = "CreateCustomer"
+	messageConsumeFailed  string = "message_consume_failed"
+	messageConsumeSuccess string = "message_consume_success"
 )
 
 type (
@@ -79,10 +82,12 @@ func (c *CustomerConsumer) Listen(forever chan struct{}) {
 			var message rabbitmq.CustomerMessage
 			err = json.Unmarshal(d.Body, &message)
 			if err != nil {
+				metrics.GetOrCreateCounter(messageConsumeFailed).Inc()
 				c.logger.Warnf("failed to unmarshal message: %v", err)
 				d.Nack(false, false)
 				continue
 			}
+			metrics.GetOrCreateCounter(fmt.Sprintf(`%v{type=%q}`, messageConsumeSuccess, message.EventType))
 			switch message.EventType {
 			case createCustomer:
 				c.handleCreateCustomer(d, message)

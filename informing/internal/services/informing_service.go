@@ -2,12 +2,18 @@ package services
 
 import (
 	"context"
+	"fmt"
+	"github.com/VictoriaMetrics/metrics"
 	"go.uber.org/zap"
 	"informing-service/internal/models"
 	"sync"
 )
 
-const sendEmailEvent = "SendEmail"
+const (
+	sendEmailEvent        = "SendEmail"
+	messagePublishSuccess = "message_publish_success"
+	messagePublishFail    = "message_publish_fail"
+)
 
 type (
 	SubscriptionRepositoryInterface interface {
@@ -73,8 +79,10 @@ func (s *InformingService) SendEmails() {
 				s.logger.Infof("Spawned goroutine")
 				err = s.subscriptionProducer.Publish(sendEmailEvent, subscription, context.Background())
 				if err != nil {
+					metrics.GetOrCreateCounter(fmt.Sprintf(`%v{event=%q}`, messagePublishFail, sendEmailEvent)).Inc()
 					s.logger.Warnf("failed to publish SendEmail command: %v", err)
 				}
+				metrics.GetOrCreateCounter(fmt.Sprintf(`%v{event=%q}`, messagePublishSuccess, sendEmailEvent)).Inc()
 				wg.Done()
 			}(subscription)
 		}

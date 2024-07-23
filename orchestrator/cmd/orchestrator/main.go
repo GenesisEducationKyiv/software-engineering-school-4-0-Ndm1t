@@ -10,8 +10,6 @@ import (
 	"orchestrator/internal/rabbitmq/producers"
 )
 
-const topic = "emails"
-
 func main() {
 	err := config.LoadConfig(".env")
 	if err != nil {

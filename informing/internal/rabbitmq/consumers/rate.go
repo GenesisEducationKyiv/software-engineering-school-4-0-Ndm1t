@@ -3,6 +3,7 @@ package consumers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/VictoriaMetrics/metrics"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"go.uber.org/zap"
 	"informing-service/internal/models"
@@ -10,7 +11,9 @@ import (
 )
 
 const (
-	rateFetched string = "RateFetched"
+	rateFetched           string = "RateFetched"
+	messageConsumeFail           = "message_consume_fail"
+	messageConsumeSuccess        = "message_consume_success"
 )
 
 type (
@@ -82,10 +85,12 @@ func (c *RateConsumer) Listen() {
 			var message rabbitmq.RateMessage
 			err = json.Unmarshal(d.Body, &message)
 			if err != nil {
+				metrics.GetOrCreateCounter(messageConsumeFail).Inc()
 				c.logger.Warnf("failed to unmarshal message: %v", err)
 				d.Nack(false, false)
 				continue
 			}
+			metrics.GetOrCreateCounter(fmt.Sprintf(`%v{type=%q}`, messageConsumeSuccess, message.EventType))
 
 			switch message.EventType {
 			case rateFetched:

@@ -6,6 +6,7 @@ import (
 	"customer-service/internal/models"
 	"customer-service/internal/rabbitmq/consumers"
 	"customer-service/internal/rabbitmq/producers"
+	"customer-service/internal/server"
 	"customer-service/internal/services"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/spf13/viper"
@@ -52,6 +53,9 @@ func main() {
 		logger.Errorf("Failed to initialize message producer: %v", err.Error())
 	}
 	defer customerConumer.Chan.Close()
+
+	s := server.NewServer()
+	s.Run()
 
 	var forever chan struct{}
 

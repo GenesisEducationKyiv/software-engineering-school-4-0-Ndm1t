@@ -1,8 +1,13 @@
 package providers
 
 import (
+	"github.com/VictoriaMetrics/metrics"
 	"go.uber.org/zap"
 	"rate-service/internal/services"
+)
+
+const (
+	rateGaugeMetric = "rate_gauge"
 )
 
 type (
@@ -27,5 +32,8 @@ func (l *LoggingProvider) FetchRate() (*float64, error) {
 		return nil, err
 	}
 	l.logger.Infof("%v provider returned value: %v", l.name, *rate)
+	metrics.GetOrCreateGauge(rateGaugeMetric, func() float64 {
+		return *rate
+	})
 	return rate, err
 }

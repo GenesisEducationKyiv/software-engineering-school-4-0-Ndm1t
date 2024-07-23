@@ -3,6 +3,7 @@ package consumers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/VictoriaMetrics/metrics"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"go.uber.org/zap"
 	"subscription-service/internal/models"
@@ -11,8 +12,10 @@ import (
 )
 
 const (
-	verifySubscription = "VerifySubscription"
-	deleteSubscription = "DeleteSubscription"
+	verifySubscription           = "VerifySubscription"
+	deleteSubscription           = "DeleteSubscription"
+	messageConsumedSuccessMetric = "message_consumed_successfully"
+	messageConsumedFailMetric    = "message_consumed_fail"
 )
 
 type (
@@ -82,10 +85,12 @@ func (c *SubscriptionConsumer) Listen() {
 			var message rabbitmq.EmailMessage
 			err = json.Unmarshal(d.Body, &message)
 			if err != nil {
+				metrics.GetOrCreateCounter(messageConsumedFailMetric).Inc()
 				c.logger.Warnf("failed to unmarshal message: %v", err)
 				d.Nack(false, false)
 				continue
 			}
+			metrics.GetOrCreateCounter(fmt.Sprintf(`%v{type=%q}`, messageConsumedSuccessMetric, message.EventType)).Inc()
 			switch message.EventType {
 			case verifySubscription:
 				c.handleVerify(d, message)
