@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/VictoriaMetrics/metrics"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"go.uber.org/zap"
 	"informing-service/internal/models"
 	"informing-service/internal/rabbitmq"
 )
@@ -17,6 +16,9 @@ const (
 )
 
 type (
+	Logger interface {
+		Warnf(template string, arguments ...interface{})
+	}
 	RateRepositoryInterface interface {
 		Create(rate models.Rate) (*models.Rate, error)
 		GetLatest() (*models.Rate, error)
@@ -27,11 +29,11 @@ type (
 		Queue          amqp.Queue
 		topic          string
 		rateRepository RateRepositoryInterface
-		logger         *zap.SugaredLogger
+		logger         Logger
 	}
 )
 
-func NewRateConsumer(conn *amqp.Connection, topic string, rateRepository RateRepositoryInterface, logger *zap.SugaredLogger) (*RateConsumer, error) {
+func NewRateConsumer(conn *amqp.Connection, topic string, rateRepository RateRepositoryInterface, logger Logger) (*RateConsumer, error) {
 	ch, err := conn.Channel()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create rabbit channel: %v", err)

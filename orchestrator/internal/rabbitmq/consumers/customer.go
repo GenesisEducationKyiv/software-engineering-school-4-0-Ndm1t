@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"go.uber.org/zap"
 	"orchestrator/internal/models"
 	"orchestrator/internal/rabbitmq"
 )
@@ -18,6 +17,10 @@ const (
 )
 
 type (
+	Logger interface {
+		Warnf(template string, arguments ...interface{})
+	}
+
 	SubscriptionProducerInterface interface {
 		Publish(eventType string, customer models.Subscription, ctx context.Context) error
 	}
@@ -27,14 +30,14 @@ type (
 		Queue                amqp.Queue
 		topic                string
 		subscriptionProducer SubscriptionProducerInterface
-		logger               *zap.SugaredLogger
+		logger               Logger
 	}
 )
 
 func NewCustomerConsumer(conn *amqp.Connection,
 	topic string,
 	subscriptionProducer SubscriptionProducerInterface,
-	logger *zap.SugaredLogger) (*CustomerConsumer, error) {
+	logger Logger) (*CustomerConsumer, error) {
 	ch, err := conn.Channel()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create rabbit channel: %v", err)

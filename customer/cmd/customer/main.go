@@ -48,16 +48,16 @@ func main() {
 
 	customerService := services.NewCustomerService(customerProducer, customerRepository)
 
-	customerConumer, err := consumers.NewCustomerConsumer(conn, "sagaCustomers", customerService, logger)
+	customerConsumer, err := consumers.NewCustomerConsumer(conn, "sagaCustomers", customerService, logger)
 	if err != nil {
 		logger.Errorf("Failed to initialize message producer: %v", err.Error())
 	}
-	defer customerConumer.Chan.Close()
+	defer customerConsumer.Chan.Close()
 
 	s := server.NewServer()
 	s.Run()
 
 	var forever chan struct{}
 
-	customerConumer.Listen(forever)
+	customerConsumer.Listen(forever)
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/VictoriaMetrics/metrics"
-	"go.uber.org/zap"
 	"informing-service/internal/models"
 	"sync"
 )
@@ -16,6 +15,11 @@ const (
 )
 
 type (
+	Logger interface {
+		Warnf(template string, arguments ...interface{})
+		Infof(template string, arguments ...interface{})
+	}
+
 	SubscriptionRepositoryInterface interface {
 		Create(email string) (*models.Subscription, error)
 		ListSubscribed(limit int, email string) ([]models.Subscription, error)
@@ -34,13 +38,13 @@ type (
 	InformingService struct {
 		subscriptionRepository SubscriptionRepositoryInterface
 		subscriptionProducer   SubscriptionProducerInterface
-		logger                 *zap.SugaredLogger
+		logger                 Logger
 	}
 )
 
 func NewInformingService(subscriptionRepository SubscriptionRepositoryInterface,
 	subscriptionProducer SubscriptionProducerInterface,
-	logger *zap.SugaredLogger) *InformingService {
+	logger Logger) *InformingService {
 	return &InformingService{
 		subscriptionRepository: subscriptionRepository,
 		subscriptionProducer:   subscriptionProducer,

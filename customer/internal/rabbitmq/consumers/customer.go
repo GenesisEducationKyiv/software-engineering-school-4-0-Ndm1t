@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/VictoriaMetrics/metrics"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"go.uber.org/zap"
 )
 
 const (
@@ -17,18 +16,22 @@ const (
 )
 
 type (
+	Logger interface {
+		Warnf(template string, arguments ...interface{})
+	}
+
 	CustomerConsumer struct {
 		Chan            *amqp.Channel
 		Queue           amqp.Queue
 		topic           string
 		customerService services.CustomerServiceInterface
-		logger          *zap.SugaredLogger
+		logger          Logger
 	}
 )
 
 func NewCustomerConsumer(conn *amqp.Connection,
 	topic string,
-	customerService services.CustomerServiceInterface, logger *zap.SugaredLogger) (*CustomerConsumer, error) {
+	customerService services.CustomerServiceInterface, logger Logger) (*CustomerConsumer, error) {
 	ch, err := conn.Channel()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create rabbit channel: %v", err)

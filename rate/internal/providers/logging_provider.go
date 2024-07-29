@@ -2,7 +2,6 @@ package providers
 
 import (
 	"github.com/VictoriaMetrics/metrics"
-	"go.uber.org/zap"
 	"rate-service/internal/services"
 )
 
@@ -11,14 +10,18 @@ const (
 )
 
 type (
+	Logger interface {
+		Warnf(template string, arguments ...interface{})
+		Infof(template string, arguments ...interface{})
+	}
 	LoggingProvider struct {
 		name         string
 		rateProvider services.IRateAPIProvider
-		logger       *zap.SugaredLogger
+		logger       Logger
 	}
 )
 
-func NewLoggingProvider(name string, rateProvider services.IRateAPIProvider, logger *zap.SugaredLogger) *LoggingProvider {
+func NewLoggingProvider(name string, rateProvider services.IRateAPIProvider, logger Logger) *LoggingProvider {
 	return &LoggingProvider{
 		name:         name,
 		rateProvider: rateProvider,

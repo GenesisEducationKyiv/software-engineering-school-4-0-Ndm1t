@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/VictoriaMetrics/metrics"
-	"go.uber.org/zap"
 	"subscription-service/internal/app_errors"
 	"subscription-service/internal/models"
 )
@@ -17,6 +16,13 @@ const (
 )
 
 type (
+	Logger interface {
+		Warnf(template string, arguments ...interface{})
+		Infof(template string, arguments ...interface{})
+		Warn(arguments ...interface{})
+		Info(arguments ...interface{})
+	}
+
 	ISubscriptionDao interface {
 		Find(email string) (*models.Email, error)
 		Create(email string) (*models.Email, error)
@@ -41,7 +47,7 @@ type (
 		SubscriptionDao          ISubscriptionDao
 		SubscriptionProducer     SubscriptionProducerInterface
 		SubscriptionSagaProducer SubscriptionProducerInterface
-		logger                   *zap.SugaredLogger
+		logger                   Logger
 	}
 )
 
@@ -49,7 +55,7 @@ func NewSubscriptionService(
 	subscriptionRepository ISubscriptionDao,
 	subscriptionProducer SubscriptionProducerInterface,
 	subscriptionSagaProducer SubscriptionProducerInterface,
-	logger *zap.SugaredLogger) *SubscriptionService {
+	logger Logger) *SubscriptionService {
 	return &SubscriptionService{
 		SubscriptionDao:          subscriptionRepository,
 		SubscriptionProducer:     subscriptionProducer,

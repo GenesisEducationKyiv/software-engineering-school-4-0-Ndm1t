@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/VictoriaMetrics/metrics"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"go.uber.org/zap"
 	"subscription-service/internal/models"
 	"subscription-service/internal/rabbitmq"
 	"subscription-service/internal/services"
@@ -19,19 +18,23 @@ const (
 )
 
 type (
+	Logger interface {
+		Warnf(template string, arguments ...interface{})
+	}
+
 	SubscriptionConsumer struct {
 		Chan                *amqp.Channel
 		Queue               amqp.Queue
 		topic               string
 		subscriptionService services.ISubscriptionService
-		logger              *zap.SugaredLogger
+		logger              Logger
 	}
 )
 
 func NewSubscriptionConsumer(conn *amqp.Connection,
 	topic string,
 	subscriptionService services.ISubscriptionService,
-	logger *zap.SugaredLogger) (*SubscriptionConsumer, error) {
+	logger Logger) (*SubscriptionConsumer, error) {
 	ch, err := conn.Channel()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create rabbit channel: %v", err)

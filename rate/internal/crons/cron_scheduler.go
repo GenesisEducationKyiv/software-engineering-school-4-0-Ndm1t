@@ -3,7 +3,6 @@ package crons
 import (
 	"context"
 	"github.com/robfig/cron/v3"
-	"go.uber.org/zap"
 	"rate-service/internal/services"
 )
 
@@ -11,11 +10,24 @@ const (
 	EveryDayAt1Am = "0 1 * * *"
 )
 
-type CronScheduler struct {
-	Cron        *cron.Cron
-	rateService services.IRateService
-	logger      *zap.SugaredLogger
-}
+type (
+	Logger interface {
+		Warnf(template string, arguments ...interface{})
+		Warn(arguments ...interface{})
+	}
+
+	Cron interface {
+		Start()
+		Stop() context.Context
+		AddFunc(spec string, cmd func()) (cron.EntryID, error)
+	}
+
+	CronScheduler struct {
+		Cron        Cron
+		rateService services.IRateService
+		logger      Logger
+	}
+)
 
 type ICronScheduler interface {
 	Setup()
@@ -25,7 +37,7 @@ type ICronScheduler interface {
 
 func NewCronScheduler(
 	rateService services.IRateService,
-	logger *zap.SugaredLogger) *CronScheduler {
+	logger Logger) *CronScheduler {
 	return &CronScheduler{
 		Cron:        cron.New(),
 		rateService: rateService,

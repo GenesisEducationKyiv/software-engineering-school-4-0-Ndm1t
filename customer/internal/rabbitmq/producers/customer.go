@@ -7,20 +7,23 @@ import (
 	"encoding/json"
 	"fmt"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"go.uber.org/zap"
 	"time"
 )
 
 type (
+	Logger interface {
+		Warnf(template string, arguments ...interface{})
+	}
+
 	CustomerProducer struct {
 		Chan   *amqp.Channel
 		Queue  amqp.Queue
 		topic  string
-		logger *zap.SugaredLogger
+		logger Logger
 	}
 )
 
-func NewCustomerProducer(conn *amqp.Connection, topic string, logger *zap.SugaredLogger) (*CustomerProducer, error) {
+func NewCustomerProducer(conn *amqp.Connection, topic string, logger Logger) (*CustomerProducer, error) {
 	ch, err := conn.Channel()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create rabbit chanel: %v", err)

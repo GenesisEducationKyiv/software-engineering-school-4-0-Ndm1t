@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"gateway/internal/server/controllers"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 	"io"
 	"net/http"
 )
@@ -18,22 +17,24 @@ const (
 
 type (
 	SubscriptionClient struct {
-		logger *zap.SugaredLogger
+		logger Logger
 	}
 )
 
-func NewSubscriptionClient(logger *zap.SugaredLogger) *SubscriptionClient {
+func NewSubscriptionClient(logger Logger) *SubscriptionClient {
 	return &SubscriptionClient{logger: logger}
 }
 
 func (c *SubscriptionClient) Subscribe(req controllers.SubscribeReq) (*int, *string, []byte, error) {
-	url := viper.GetString("SUBSCRIPTION_SERVICE_BASE_URL") + subscribeEndpoint
 	reqJSON, err := json.Marshal(req)
 	if err != nil {
 		c.logger.Warnf("failed to marshal request: %v", err.Error())
 		return nil, nil, nil, err
 	}
-	res, err := http.Post(url, contentType, bytes.NewBuffer(reqJSON))
+	res, err := http.Post(
+		viper.GetString("SUBSCRIPTION_SERVICE_BASE_URL")+subscribeEndpoint,
+		contentType,
+		bytes.NewBuffer(reqJSON))
 	if err != nil {
 		c.logger.Warnf("failed to send post request: %v", err.Error())
 		return nil, nil, nil, err
@@ -51,13 +52,16 @@ func (c *SubscriptionClient) Subscribe(req controllers.SubscribeReq) (*int, *str
 }
 
 func (c *SubscriptionClient) Unsubscribe(req controllers.SubscribeReq) (*int, *string, []byte, error) {
-	url := viper.GetString("SUBSCRIPTION_SERVICE_BASE_URL") + unsubscribeEndpoint
+
 	reqJSON, err := json.Marshal(req)
 	if err != nil {
 		c.logger.Warnf("failed to marshal request: %v", err.Error())
 		return nil, nil, nil, err
 	}
-	res, err := http.Post(url, contentType, bytes.NewBuffer(reqJSON))
+	res, err := http.Post(
+		viper.GetString("SUBSCRIPTION_SERVICE_BASE_URL")+unsubscribeEndpoint,
+		contentType,
+		bytes.NewBuffer(reqJSON))
 	if err != nil {
 		c.logger.Warnf("failed to send post request: %v", err.Error())
 		return nil, nil, nil, err
