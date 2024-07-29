@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"customer-service/internal/models"
 	"errors"
 	"github.com/google/uuid"
@@ -24,7 +25,9 @@ func NewCustomerRepository(db *gorm.DB) *CustomerRepository {
 }
 
 func (r *CustomerRepository) Create(customer models.Customer) (*models.Customer, error) {
-	result := r.db.Create(&customer)
+	ctx, cancel := context.WithTimeout(context.Background(), DBTimeout)
+	defer cancel()
+	result := r.db.WithContext(ctx).Create(&customer)
 	if result.Error != nil {
 		return nil, ErrDatabaseInternal
 	}
@@ -32,7 +35,9 @@ func (r *CustomerRepository) Create(customer models.Customer) (*models.Customer,
 }
 
 func (r *CustomerRepository) DeleteByTxID(txID uuid.UUID) error {
-	result := r.db.Model(&models.Customer{}).Where("txId = ?", txID)
+	ctx, cancel := context.WithTimeout(context.Background(), DBTimeout)
+	defer cancel()
+	result := r.db.WithContext(ctx).Model(&models.Customer{}).Where("txId = ?", txID)
 	if result.Error != nil {
 		return ErrDatabaseInternal
 	}
