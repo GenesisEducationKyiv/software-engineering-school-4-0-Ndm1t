@@ -1,6 +1,6 @@
 module customer-service
 
-go 1.22.4
+go 1.21
 
 require (
 	github.com/VictoriaMetrics/metrics v1.35.1

@@ -6,6 +6,7 @@ services:
       context: ./informing
       dockerfile: Dockerfile
     container_name: informing-service
+    restart: always
     ports:
       - 8080:8080
     depends_on:
@@ -20,6 +21,7 @@ services:
       context: ./rate
       dockerfile: Dockerfile
     container_name: rate-service
+    restart: always
     depends_on:
       - rabbitmq
       - postgres
@@ -31,6 +33,7 @@ services:
       context: ./gateway
       dockerfile: Dockerfile
     container_name: gateway
+    restart: always
     ports:
       - 80:80
     depends_on:
@@ -44,11 +47,34 @@ services:
       context: ./subscription
       dockerfile: Dockerfile
     container_name: subscription-service
+    restart: always
     depends_on:
       - postgres
       - rabbitmq
     env_file:
       - ./subscription/.env
+
+  orchestrator:
+    build:
+      context: ./orchestrator
+      dockerfile: Dockerfile
+    container_name: orchestrator
+    restart: always
+    depends_on:
+      - rabbitmq
+    env_file:
+      - ./orchestrator/.env
+  customer_service:
+    build:
+      context: ./customer
+      dockerfile: Dockerfile
+    container_name: customer-service
+    restart: always
+    depends_on:
+      - postgres
+      - rabbitmq
+    env_file:
+      - ./customer/.env
 
   postgres:
     image: postgres:13
@@ -57,7 +83,7 @@ services:
     ports:
       - 5432:5432
     env_file:
-      - ./subscription/.env
+      - .env
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}

@@ -54,10 +54,10 @@ func main() {
 	}
 	defer customerConsumer.Chan.Close()
 
-	s := server.NewServer()
-	s.Run()
-
 	var forever chan struct{}
 
-	customerConsumer.Listen(forever)
+	go customerConsumer.Listen(forever)
+
+	s := server.NewServer()
+	s.Run()
 }

@@ -24,7 +24,7 @@ func (s *Server) routes() {
 	api := s.router.Group("/api")
 	{
 		api.GET("/metrics", func(ctx *gin.Context) {
-			metrics.WritePrometheus(ctx.Writer, false)
+			metrics.WritePrometheus(ctx.Writer, true)
 			return
 		})
 	}

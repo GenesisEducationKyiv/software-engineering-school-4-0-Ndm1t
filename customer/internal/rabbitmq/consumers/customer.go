@@ -18,6 +18,7 @@ const (
 type (
 	Logger interface {
 		Warnf(template string, arguments ...interface{})
+		Info(arguments ...interface{})
 	}
 
 	CustomerConsumer struct {
@@ -60,6 +61,7 @@ func NewCustomerConsumer(conn *amqp.Connection,
 }
 
 func (c *CustomerConsumer) Listen(forever chan struct{}) {
+	c.logger.Info("Listening to events")
 	msgs, err := c.Chan.Consume(
 		c.Queue.Name,
 		"",
