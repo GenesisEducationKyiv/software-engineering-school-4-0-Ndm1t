@@ -1,17 +1,80 @@
 version: "3.8"
 
 services:
-  usd-mailer:
+  informing_service:
     build:
-      context: .
+      context: ./informing
       dockerfile: Dockerfile
-    container_name: usd-mailer
+    container_name: informing-service
+    restart: always
+    ports:
+      - 8080:8080
+    depends_on:
+      - rabbitmq
+      - rate_service
+      - subscription_service
+    env_file:
+      - ./informing/.env
+
+  rate_service:
+    build:
+      context: ./rate
+      dockerfile: Dockerfile
+    container_name: rate-service
+    restart: always
+    depends_on:
+      - rabbitmq
+      - postgres
+    env_file:
+      - ./rate/.env
+
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    container_name: gateway
+    restart: always
     ports:
       - 80:80
     depends_on:
-      - postgres
+      - subscription_service
+      - rate_service
     env_file:
-      - .env
+      - ./gateway/.env
+
+  subscription_service:
+    build:
+      context: ./subscription
+      dockerfile: Dockerfile
+    container_name: subscription-service
+    restart: always
+    depends_on:
+      - postgres
+      - rabbitmq
+    env_file:
+      - ./subscription/.env
+
+  orchestrator:
+    build:
+      context: ./orchestrator
+      dockerfile: Dockerfile
+    container_name: orchestrator
+    restart: always
+    depends_on:
+      - rabbitmq
+    env_file:
+      - ./orchestrator/.env
+  customer_service:
+    build:
+      context: ./customer
+      dockerfile: Dockerfile
+    container_name: customer-service
+    restart: always
+    depends_on:
+      - postgres
+      - rabbitmq
+    env_file:
+      - ./customer/.env
 
   postgres:
     image: postgres:13
@@ -26,3 +89,12 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
 
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    ports:
+      - 5672:5672
+      - 15672:15672
+    volumes:
+      - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
+      - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
