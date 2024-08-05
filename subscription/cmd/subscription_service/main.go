@@ -7,6 +7,7 @@ import (
 	"subscription-service/internal/config"
 	"subscription-service/internal/database"
 	"subscription-service/internal/models"
+	"subscription-service/internal/rabbitmq/consumers"
 	"subscription-service/internal/rabbitmq/producers"
 	"subscription-service/internal/server"
 	"subscription-service/internal/server/controllers"
@@ -39,17 +40,26 @@ func main() {
 		log.Fatalf("Failed to initialize message producer: %v", err.Error())
 	}
 
+	subscriptionSagaProducer, err := producers.NewEmailProducer(conn, "sagaEmails")
+	if err != nil {
+		log.Fatalf("Failed to initialize message producer: %v", err.Error())
+	}
+
 	if err = db.AutoMigrate(&models.Email{}); err != nil {
 		log.Fatalf("Coulnd't migrate database: %v", err.Error())
 	}
 
 	subscriptionRepository := database.NewSubscriptionRepository(db)
 
-	subscriptionService := services.NewSubscriptionService(subscriptionRepository, subscriptionProducer)
+	subscriptionService := services.NewSubscriptionService(subscriptionRepository, subscriptionProducer, subscriptionSagaProducer)
 
 	subscriptionController := controllers.NewSubscriptionController(subscriptionService)
 
+	subscriptionConsumer, err := consumers.NewSubscriptionConsumer(conn, "sagaEmailsReply", subscriptionService)
+	defer subscriptionConsumer.Chan.Close()
+
 	s := server.NewServer(subscriptionController)
 
+	subscriptionConsumer.Listen()
 	s.Run()
 }
