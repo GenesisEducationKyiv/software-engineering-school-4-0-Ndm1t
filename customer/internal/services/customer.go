@@ -3,12 +3,16 @@ package services
 import (
 	"context"
 	"customer-service/internal/models"
+	"fmt"
+	"github.com/VictoriaMetrics/metrics"
 	"github.com/google/uuid"
 )
 
 const (
 	customerCreateSuccess = "CustomerCreated"
 	customerCreatedFailed = "CustomerFailed"
+	messagePublishFail    = "message_publish_fail"
+	messagePublishSuccess = "message_publish_success"
 )
 
 type (
@@ -44,8 +48,17 @@ func (s *CustomerService) Create(txID uuid.UUID, email string) {
 		Email: email,
 	})
 	if err != nil {
-		s.publisher.Publish(customerCreatedFailed, models.Customer{}, context.Background())
+		err = s.publisher.Publish(customerCreatedFailed, models.Customer{}, context.Background())
+		if err != nil {
+			metrics.GetOrCreateCounter(fmt.Sprintf(`%v{type=%q}`, messagePublishFail, customerCreatedFailed))
+		}
+		metrics.GetOrCreateCounter(fmt.Sprintf(`%v{type=%q}`, messagePublishSuccess, customerCreatedFailed))
 		return
 	}
-	s.publisher.Publish(customerCreateSuccess, *customer, context.Background())
+
+	err = s.publisher.Publish(customerCreateSuccess, *customer, context.Background())
+	if err != nil {
+		metrics.GetOrCreateCounter(fmt.Sprintf(`%v{type=%q}`, messagePublishFail, customerCreatedFailed))
+	}
+	metrics.GetOrCreateCounter(fmt.Sprintf(`%v{type=%q}`, messagePublishSuccess, customerCreatedFailed))
 }

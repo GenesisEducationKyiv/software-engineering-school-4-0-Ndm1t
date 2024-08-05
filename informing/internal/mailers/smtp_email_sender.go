@@ -2,8 +2,14 @@ package mailers
 
 import (
 	"fmt"
+	"github.com/VictoriaMetrics/metrics"
 	"github.com/spf13/viper"
 	"net/smtp"
+)
+
+const (
+	emailSendingSuccess = "email_sending_success"
+	emailSendingFail    = "email_sending_fail"
 )
 
 type SMTPEmailSender struct {
@@ -36,8 +42,9 @@ func (s *SMTPEmailSender) SendInforming(email string, rate float64) error {
 	msg := []byte(subject + fromHeader + toHeader + "\n" + body)
 	err := smtp.SendMail(s.host+":"+s.port, s.auth, s.from, []string{email}, msg)
 	if err != nil {
+		metrics.GetOrCreateCounter(emailSendingFail).Inc()
 		return err
 	}
-
+	metrics.GetOrCreateCounter(emailSendingSuccess).Inc()
 	return err
 }

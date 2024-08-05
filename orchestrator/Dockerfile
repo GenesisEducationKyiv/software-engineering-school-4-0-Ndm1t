@@ -9,12 +9,13 @@ RUN go mod download
 # Copy the rest of the application
 COPY . /app
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o subscription_service ./cmd/subscription_service
+RUN CGO_ENABLED=0 GOOS=linux go build -o orchestrator ./cmd/orchestrator
+
 
 FROM scratch
 
-COPY --from=builder /app/subscription_service /app/subscription_service
+COPY --from=builder /app/orchestrator /app/orchestrator
 
 COPY .env .
 
-CMD ["/app/subscription_service"]
+CMD ["/app/orchestrator"]

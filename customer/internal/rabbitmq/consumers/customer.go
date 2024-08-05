@@ -5,26 +5,34 @@ import (
 	"customer-service/internal/services"
 	"encoding/json"
 	"fmt"
+	"github.com/VictoriaMetrics/metrics"
 	amqp "github.com/rabbitmq/amqp091-go"
-	"log"
 )
 
 const (
-	createCustomer string = "CreateCustomer"
+	createCustomer        string = "CreateCustomer"
+	messageConsumeFailed  string = "message_consume_failed"
+	messageConsumeSuccess string = "message_consume_success"
 )
 
 type (
+	Logger interface {
+		Warnf(template string, arguments ...interface{})
+		Info(arguments ...interface{})
+	}
+
 	CustomerConsumer struct {
 		Chan            *amqp.Channel
 		Queue           amqp.Queue
 		topic           string
 		customerService services.CustomerServiceInterface
+		logger          Logger
 	}
 )
 
 func NewCustomerConsumer(conn *amqp.Connection,
 	topic string,
-	customerService services.CustomerServiceInterface) (*CustomerConsumer, error) {
+	customerService services.CustomerServiceInterface, logger Logger) (*CustomerConsumer, error) {
 	ch, err := conn.Channel()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create rabbit channel: %v", err)
@@ -48,10 +56,12 @@ func NewCustomerConsumer(conn *amqp.Connection,
 		Queue:           q,
 		topic:           topic,
 		customerService: customerService,
+		logger:          logger,
 	}, nil
 }
 
 func (c *CustomerConsumer) Listen(forever chan struct{}) {
+	c.logger.Info("Listening to events")
 	msgs, err := c.Chan.Consume(
 		c.Queue.Name,
 		"",
@@ -62,14 +72,14 @@ func (c *CustomerConsumer) Listen(forever chan struct{}) {
 		nil,
 	)
 	if err != nil {
-		log.Printf("failed to consume subscriptions: %v", err.Error())
+		c.logger.Warnf("failed to consume subscriptions: %v", err.Error())
 		return
 	}
 
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				log.Printf("recovered from panic: %v", r)
+				c.logger.Warnf("recovered from panic: %v", r)
 			}
 		}()
 
@@ -77,15 +87,17 @@ func (c *CustomerConsumer) Listen(forever chan struct{}) {
 			var message rabbitmq.CustomerMessage
 			err = json.Unmarshal(d.Body, &message)
 			if err != nil {
-				log.Printf("failed to unmarshal message: %v", err)
-				d.Nack(false, true)
+				metrics.GetOrCreateCounter(messageConsumeFailed).Inc()
+				c.logger.Warnf("failed to unmarshal message: %v", err)
+				d.Nack(false, false)
 				continue
 			}
+			metrics.GetOrCreateCounter(fmt.Sprintf(`%v{type=%q}`, messageConsumeSuccess, message.EventType))
 			switch message.EventType {
 			case createCustomer:
 				c.handleCreateCustomer(d, message)
 			default:
-				log.Printf("unhandled event type: %s", message.EventType)
+				c.logger.Warnf("unhandled event type: %s", message.EventType)
 				d.Nack(false, false)
 			}
 		}

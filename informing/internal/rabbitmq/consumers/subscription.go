@@ -3,10 +3,10 @@ package consumers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/VictoriaMetrics/metrics"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"informing-service/internal/models"
 	"informing-service/internal/rabbitmq"
-	"log"
 )
 
 const (
@@ -32,6 +32,7 @@ type (
 		subscriptionRepository SubscriptionRepositoryInterface
 		rateRepository         RateRepositoryInterface
 		emailSender            EmailSenderInterface
+		logger                 Logger
 	}
 )
 
@@ -39,7 +40,8 @@ func NewSubscriptionConsumer(conn *amqp.Connection,
 	topic string,
 	subscriptionRepository SubscriptionRepositoryInterface,
 	rateRepository RateRepositoryInterface,
-	emailSender EmailSenderInterface) (*SubscriptionConsumer, error) {
+	emailSender EmailSenderInterface,
+	logger Logger) (*SubscriptionConsumer, error) {
 	ch, err := conn.Channel()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create rabbit channel: %v", err)
@@ -65,6 +67,7 @@ func NewSubscriptionConsumer(conn *amqp.Connection,
 		subscriptionRepository: subscriptionRepository,
 		rateRepository:         rateRepository,
 		emailSender:            emailSender,
+		logger:                 logger,
 	}, nil
 }
 
@@ -79,14 +82,14 @@ func (c *SubscriptionConsumer) Listen() {
 		nil,
 	)
 	if err != nil {
-		log.Printf("failed to consume subscriptions: %v", err.Error())
+		c.logger.Warnf("failed to consume subscriptions: %v", err.Error())
 		return
 	}
 
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				log.Printf("recovered from panic: %v", r)
+				c.logger.Warnf("recovered from panic: %v", r)
 			}
 		}()
 
@@ -94,10 +97,12 @@ func (c *SubscriptionConsumer) Listen() {
 			var message rabbitmq.SubscriptionMessage
 			err = json.Unmarshal(d.Body, &message)
 			if err != nil {
-				log.Printf("failed to unmarshal message: %v", err)
+				metrics.GetOrCreateCounter(messageConsumeFail).Inc()
+				c.logger.Warnf("failed to unmarshal message: %v", err)
 				d.Nack(false, true)
 				continue
 			}
+			metrics.GetOrCreateCounter(fmt.Sprintf(`%v{type=%q}`, messageConsumeSuccess, message.EventType)).Inc()
 			switch message.EventType {
 			case subscriptionCreated:
 				c.handleCreated(d, message)
@@ -106,7 +111,7 @@ func (c *SubscriptionConsumer) Listen() {
 			case subscriptionDeleted:
 				c.handleSubscriptionDeleted(d, message)
 			default:
-				log.Printf("unhandled event type: %s", message.EventType)
+				c.logger.Warnf("unhandled event type: %s", message.EventType)
 				d.Nack(false, false)
 			}
 		}
@@ -116,7 +121,7 @@ func (c *SubscriptionConsumer) Listen() {
 func (c *SubscriptionConsumer) handleCreated(delivery amqp.Delivery, message rabbitmq.SubscriptionMessage) {
 	_, err := c.subscriptionRepository.Create(message.Data.Email)
 	if err != nil {
-		log.Printf("failed to create subscription: %v", err)
+		c.logger.Warnf("failed to create subscription: %v", err)
 		delivery.Nack(false, true)
 		return
 	}
@@ -127,14 +132,14 @@ func (c *SubscriptionConsumer) handleCreated(delivery amqp.Delivery, message rab
 func (c *SubscriptionConsumer) handleSendEmail(delivery amqp.Delivery, email string) {
 	rate, err := c.rateRepository.GetLatest()
 	if err != nil {
-		log.Printf("failed to get rate from database: %v", err)
+		c.logger.Warnf("failed to get rate from database: %v", err)
 		delivery.Nack(false, true)
 		return
 	}
 
 	err = c.emailSender.SendInforming(email, rate.Rate)
 	if err != nil {
-		log.Printf("failed to send email: %v", err)
+		c.logger.Warnf("failed to send email: %v", err)
 		delivery.Nack(false, true)
 		return
 	}
@@ -145,7 +150,7 @@ func (c *SubscriptionConsumer) handleSendEmail(delivery amqp.Delivery, email str
 func (c *SubscriptionConsumer) handleSubscriptionDeleted(delivery amqp.Delivery, message rabbitmq.SubscriptionMessage) {
 	err := c.subscriptionRepository.Delete(message.Data)
 	if err != nil {
-		log.Printf("failed to delete subscription: %v", err)
+		c.logger.Warnf("failed to delete subscription: %v", err)
 		delivery.Nack(false, true)
 		return
 	}

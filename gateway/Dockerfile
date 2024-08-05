@@ -1,4 +1,4 @@
-FROM golang:1.21
+FROM golang:1.21 AS builder
 
 WORKDIR /app
 
@@ -7,8 +7,14 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 # Copy the rest of the application
-COPY . .
+COPY . /app
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /gateway ./cmd/gateway
+RUN CGO_ENABLED=0 GOOS=linux go build -o gateway ./cmd/gateway
 
-CMD ["/gateway"]
+FROM scratch
+
+COPY --from=builder /app/gateway /app/gateway
+
+COPY .env .
+
+CMD ["/app/gateway"]

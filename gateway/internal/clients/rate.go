@@ -9,22 +9,31 @@ import (
 const getRateEndpoint = "/rate"
 
 type (
-	RateClient struct{}
+	Logger interface {
+		Warnf(template string, arguments ...interface{})
+	}
+
+	RateClient struct {
+		logger Logger
+	}
 )
 
-func NewRateClient() *RateClient {
-	return &RateClient{}
+func NewRateClient(logger Logger) *RateClient {
+	return &RateClient{
+		logger: logger,
+	}
 }
 
 func (c *RateClient) FetchRate() (*int, *string, []byte, error) {
-	rateUrl := viper.GetString("RATE_SERVICE_BASE_URL") + getRateEndpoint
-	res, err := http.Get(rateUrl)
+	res, err := http.Get(viper.GetString("RATE_SERVICE_BASE_URL") + getRateEndpoint)
 	if err != nil {
+		c.logger.Warnf(`failed to fetch rate: %v`, err.Error())
 		return nil, nil, nil, err
 	}
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
+		c.logger.Warnf(`failed to read response body: %v`, err.Error())
 		return nil, nil, nil, err
 	}
 

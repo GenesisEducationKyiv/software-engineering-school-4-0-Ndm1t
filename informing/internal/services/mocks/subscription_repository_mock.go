@@ -19,8 +19,8 @@ func (m *MockSubscriptionRepository) Create(email string) (*models.Subscription,
 	return args.Get(0).(*models.Subscription), args.Error(1)
 }
 
-func (m *MockSubscriptionRepository) ListSubscribed() ([]models.Subscription, error) {
-	args := m.Called()
+func (m *MockSubscriptionRepository) ListSubscribed(limit int, startEmail string) ([]models.Subscription, error) {
+	args := m.Called(limit, startEmail)
 	return args.Get(0).([]models.Subscription), args.Error(1)
 }
 

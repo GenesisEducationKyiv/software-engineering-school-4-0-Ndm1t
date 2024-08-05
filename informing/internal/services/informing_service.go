@@ -2,14 +2,24 @@ package services
 
 import (
 	"context"
+	"fmt"
+	"github.com/VictoriaMetrics/metrics"
 	"informing-service/internal/models"
-	"log"
 	"sync"
 )
 
-const sendEmailEvent = "SendEmail"
+const (
+	sendEmailEvent        = "SendEmail"
+	messagePublishSuccess = "message_publish_success"
+	messagePublishFail    = "message_publish_fail"
+)
 
 type (
+	Logger interface {
+		Warnf(template string, arguments ...interface{})
+		Infof(template string, arguments ...interface{})
+	}
+
 	SubscriptionRepositoryInterface interface {
 		Create(email string) (*models.Subscription, error)
 		ListSubscribed(limit int, email string) ([]models.Subscription, error)
@@ -28,14 +38,17 @@ type (
 	InformingService struct {
 		subscriptionRepository SubscriptionRepositoryInterface
 		subscriptionProducer   SubscriptionProducerInterface
+		logger                 Logger
 	}
 )
 
 func NewInformingService(subscriptionRepository SubscriptionRepositoryInterface,
-	subscriptionProducer SubscriptionProducerInterface) *InformingService {
+	subscriptionProducer SubscriptionProducerInterface,
+	logger Logger) *InformingService {
 	return &InformingService{
 		subscriptionRepository: subscriptionRepository,
 		subscriptionProducer:   subscriptionProducer,
+		logger:                 logger,
 	}
 }
 
@@ -48,9 +61,9 @@ func (s *InformingService) SendEmails() {
 
 	for left {
 		subscriptions, err := s.subscriptionRepository.ListSubscribed(limit, startEmail)
-		log.Printf("Subscriptions fetched: %v", subscriptions)
+		s.logger.Infof("Subscriptions fetched: %v", subscriptions)
 		if err != nil {
-			log.Printf("failed to list subscribed emails: %v", err.Error())
+			s.logger.Warnf("failed to list subscribed emails: %v", err.Error())
 			return
 		}
 
@@ -67,11 +80,13 @@ func (s *InformingService) SendEmails() {
 			wg.Add(1)
 			subscription := v
 			go func(subscription models.Subscription) {
-				log.Printf("Spawned goroutine")
+				s.logger.Infof("Spawned goroutine")
 				err = s.subscriptionProducer.Publish(sendEmailEvent, subscription, context.Background())
 				if err != nil {
-					log.Printf("failed to publish SendEmail command: %v", err)
+					metrics.GetOrCreateCounter(fmt.Sprintf(`%v{event=%q}`, messagePublishFail, sendEmailEvent)).Inc()
+					s.logger.Warnf("failed to publish SendEmail command: %v", err)
 				}
+				metrics.GetOrCreateCounter(fmt.Sprintf(`%v{event=%q}`, messagePublishSuccess, sendEmailEvent)).Inc()
 				wg.Done()
 			}(subscription)
 		}

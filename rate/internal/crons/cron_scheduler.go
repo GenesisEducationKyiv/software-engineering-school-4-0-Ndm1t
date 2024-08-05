@@ -3,7 +3,6 @@ package crons
 import (
 	"context"
 	"github.com/robfig/cron/v3"
-	"log"
 	"rate-service/internal/services"
 )
 
@@ -11,10 +10,24 @@ const (
 	EveryDayAt1Am = "0 1 * * *"
 )
 
-type CronScheduler struct {
-	Cron        *cron.Cron
-	rateService services.IRateService
-}
+type (
+	Logger interface {
+		Warnf(template string, arguments ...interface{})
+		Warn(arguments ...interface{})
+	}
+
+	Cron interface {
+		Start()
+		Stop() context.Context
+		AddFunc(spec string, cmd func()) (cron.EntryID, error)
+	}
+
+	CronScheduler struct {
+		Cron        Cron
+		rateService services.IRateService
+		logger      Logger
+	}
+)
 
 type ICronScheduler interface {
 	Setup()
@@ -23,10 +36,12 @@ type ICronScheduler interface {
 }
 
 func NewCronScheduler(
-	rateService services.IRateService) *CronScheduler {
+	rateService services.IRateService,
+	logger Logger) *CronScheduler {
 	return &CronScheduler{
 		Cron:        cron.New(),
 		rateService: rateService,
+		logger:      logger,
 	}
 }
 
@@ -34,11 +49,11 @@ func (s *CronScheduler) Setup() {
 	_, err := s.Cron.AddFunc(EveryDayAt1Am, func() {
 		_, err := s.rateService.Get()
 		if err != nil {
-			log.Print(err)
+			s.logger.Warn(err)
 		}
 	})
 	if err != nil {
-		log.Printf("Failed to register job: %v", err.Error())
+		s.logger.Warnf("Failed to register job: %v", err.Error())
 	}
 }
 

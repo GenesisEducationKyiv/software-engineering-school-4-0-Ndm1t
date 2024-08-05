@@ -9,12 +9,12 @@ RUN go mod download
 # Copy the rest of the application
 COPY . /app
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o subscription_service ./cmd/subscription_service
+RUN CGO_ENABLED=0 GOOS=linux go build -o customer_service ./cmd/customer
 
 FROM scratch
 
-COPY --from=builder /app/subscription_service /app/subscription_service
+COPY --from=builder /app/customer_service /app/customer_service
 
 COPY .env .
 
-CMD ["/app/subscription_service"]
+CMD ["/app/customer_service"]
